@@ -1,64 +1,55 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Acoustic Beacon — Coming Soon</title>
-  <meta name="description" content="Acoustic Beacon — audio-powered connection between people, places and possibilities.">
-  <meta name="theme-color" content="#050819">
-  <meta property="og:title" content="Acoustic Beacon — Coming Soon">
-  <meta property="og:description" content="Audio-powered connection between people, places and possibilities.">
-  <meta property="og:image" content="/assets/social-preview.jpg">
-  <link rel="icon" href="/assets/favicon.png">
-  <link rel="preload" as="image" href="/assets/hero-mobile.webp" media="(max-width:759px)">
-  <link rel="preload" as="image" href="/assets/hero-desktop.webp" media="(min-width:1100px)">
-  <link rel="stylesheet" href="/assets/site.css">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Acoustic Beacon — Coming Soon</title>
+<meta name="description" content="Acoustic Beacon — audio-powered connection between people, places and possibilities.">
+<meta name="theme-color" content="#040619">
+<meta property="og:title" content="Acoustic Beacon — Coming Soon">
+<meta property="og:description" content="Audio-powered connection between people, places and possibilities.">
+<meta property="og:image" content="/assets/social-preview.jpg">
+<link rel="icon" href="/assets/favicon.png">
+<link rel="preload" as="image" href="/assets/hero-mobile.webp" media="(max-width:759px)">
+<link rel="preload" as="image" href="/assets/hero-desktop.webp" media="(min-width:1100px)">
+<link rel="stylesheet" href="/assets/site.css">
 </head>
 <body>
-  <main class="site">
-    <div class="shell">
-      <header>
-        <div class="kicker">Sound<br>connects<br>opportunities</div>
-        <nav aria-label="Main navigation">
-          <a href="#about" data-modal="about">About</a>
-          <a href="mailto:hello@acousticbeacon.com">Contact</a>
-        </nav>
-      </header>
+<main class="site">
+<div class="shell">
+<header>
+<div class="kicker">Sound<br>connects<br>opportunities</div>
+<nav><a href="#about" data-modal="about">About</a><a href="mailto:hello@acousticbeacon.com">Contact</a></nav>
+</header>
 
-      <section class="hero" aria-labelledby="title">
-        <img class="logo-mark" src="/assets/logo.svg" alt="" width="420" height="170">
-        <h1 id="title">Acoustic Beacon</h1>
-        <p class="tagline">HEAR A BRIGHTER TOMORROW</p>
+<section class="hero">
+<img class="logo" src="/assets/logo.svg" alt="" width="420" height="170">
+<h1>Acoustic Beacon</h1>
+<p class="tagline">HEAR A BRIGHTER TOMORROW</p>
+<div class="coming">COMING SOON</div>
+<p class="sub">Audio-powered connection between<br>people, places and possibilities.</p>
 
-        <div class="coming">COMING SOON</div>
-        <p class="sub">Audio-powered connection between<br class="desktop-break"> people, places and possibilities.</p>
+<form class="signup" name="updates" method="POST" data-netlify="true" action="/thanks.html">
+<input type="hidden" name="form-name" value="updates">
+<label class="sr-only" for="email">Email address</label>
+<input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="Get updates" required>
+<button type="submit">Notify Me</button>
+</form>
 
-        <form class="signup" name="updates" method="POST" data-netlify="true" action="/thanks.html">
-          <input type="hidden" name="form-name" value="updates">
-          <label for="email" class="sr-only" style="position:absolute;left:-9999px;">Email address</label>
-          <input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="Get updates" required>
-          <button type="submit">Notify Me</button>
-        </form>
+<div class="features">
+<div class="feature"><span class="icon">◇</span>Local Deals</div>
+<div class="feature"><span class="icon">◎</span>Real Connections</div>
+<div class="feature"><span class="icon">⌖</span>Community First</div>
+</div>
 
-        <div class="features" aria-label="Highlights">
-          <div class="feature"><span class="icon">◇</span>Local Deals</div>
-          <div class="feature"><span class="icon">◎</span>Real Connections</div>
-          <div class="feature"><span class="icon">⌖</span>Community First</div>
-        </div>
+<div class="bottomline">A more connected world sounds better</div>
+</section>
+</div>
+</main>
 
-        <div class="bottomline">A more connected world sounds better</div>
-      </section>
-    </div>
-  </main>
-
-  <div class="modal" id="about" role="dialog" aria-modal="true" aria-labelledby="about-title">
-    <div class="modal-card">
-      <button class="close" type="button" data-close aria-label="Close">×</button>
-      <h2 id="about-title">About Acoustic Beacon</h2>
-      <p>Acoustic Beacon is building an audio-powered way for people to discover nearby places, promotions and experiences through sound-enabled beacons.</p>
-    </div>
-  </div>
-
-  <script src="/assets/site.js" defer></script>
-</body>
-</html>
+<div class="modal" id="about" role="dialog" aria-modal="true" aria-labelledby="about-title">
+<div class="modal-card"><button class="close" data-close aria-label="Close">×</button>
+<h2 id="about-title">About Acoustic Beacon</h2>
+<p>Acoustic Beacon is developing an audio-powered platform for discovering nearby promotions, information and experiences through compatible acoustic beacons.</p>
+</div></div>
+<script src="/assets/site.js" defer></script>
+</body></html>
