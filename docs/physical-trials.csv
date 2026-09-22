@@ -1,0 +1,1 @@
+utc_timestamp,app_commit,phone_model,os_version,source_model,output_route,wav,zero_hz,one_hz,symbol_ms,threshold,distance_m,orientation,volume,noise,trial,candidate_seen,preamble_seen,crc_valid_frames,crc_failed_frames,payload,new_detection_timestamp,card_shown,notes
