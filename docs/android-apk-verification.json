@@ -1,0 +1,11 @@
+{
+  "apk": "C:\\Users\\Kevin Brown\\.codex\\.chatgpt-projects\\g-p-6ab2a5e3e470819187f3cc22f6e1ec51\\Acoustic-Beacon-debug.apk",
+  "bytes": 160984112,
+  "sha256": "95e9dfdab8facd78c111e7a116071fa426ea43777b443c3e547839a6de92bab6",
+  "architectures": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "signatureVerified": true
+}

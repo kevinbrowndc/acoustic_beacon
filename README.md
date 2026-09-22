@@ -34,7 +34,7 @@ The checked-in Android release configuration uses a development signing key. Con
 
 ### Environment verification on 2026-09-22
 
-Static analysis and test results are recorded in `docs/VERIFICATION.md`. No physical mobile device was attached. Android debug builds were attempted twice and stopped inside Gradle with `java.io.IOException: Unable to establish loopback connection`, before native app compilation. The installed Android Studio selected JDK 25 and some SDK licenses were unaccepted. Resolve the local Gradle/network environment, use JDK 17 or 21, and review SDK licenses before retrying. iOS compilation was unavailable on Windows. No APK/IPA is represented as verified.
+Android debug compilation now succeeds with verified Temurin JDK 21 and a dedicated Java socket directory. The final APK passes Android signature verification (v1/v2), supports armeabi-v7a, arm64-v8a and x86_64, and requires Android API 23 or later. All 20 automated tests passed again; static analysis found no issues. See `docs/ANDROID_BUILD.md` for the repeatable Windows build script and `docs/android-apk-verification.json` for the delivered file checksum. No physical mobile device was attached; acoustic acceptance and iOS compilation remain unverified.
 
 ## Generate and play the beacon
 
@@ -121,3 +121,4 @@ dart run tool/generate_beacon.dart --zero-hz=19000 --one-hz=20000 --symbol-ms=10
 ```
 
 Apply the same two frequencies and symbol duration in the debug screen. `--payload=...` selects an alternate UTF-8 payload. `--repetitions=1` produces a negative control that must not trigger content.
+
