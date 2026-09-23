@@ -746,6 +746,34 @@ class _DebugPageState extends State<DebugPage> {
         body: ListView(
           padding: const EdgeInsets.all(24),
           children: [
+            const Text(
+              'Diagnostic build D01',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            SelectableText(
+              'SESSION TOTALS — remain after Stop listening\n'
+              'Active frequencies: ${c.config.zeroHz.toStringAsFixed(0)} / ${c.config.oneHz.toStringAsFixed(0)} Hz\n'
+              'Active threshold: ${c.config.threshold} · symbol: ${c.config.symbolMs} ms\n'
+              'Audio processed: ${(d.processedSamples / c.config.sampleRate).toStringAsFixed(1)} seconds\n'
+              'Candidate blocks: ${d.candidateBlocks}\n'
+              'Non-candidate blocks: ${d.quietBlocks}\n'
+              'Accepted symbols: ${d.acceptedSymbols}\n'
+              'Too-short bursts: ${d.shortBursts}\n'
+              'Too-long bursts: ${d.longBursts}\n'
+              'Preambles found: ${d.preamblesFound}\n'
+              'Invalid headers: ${d.invalidHeaders}\n'
+              'CRC/payload failures: ${d.crcFailures}\n'
+              'CRC-valid frames: ${d.acceptedFrames}\n'
+              'Last matching-frame count: ${d.matchingFrames}\n'
+              'Validated beacon events: ${d.validatedBeacons}\n'
+              'Peak tone amplitude: ${d.peakLevel.toStringAsFixed(5)}\n'
+              'Recent burst lengths (ms): ${d.recentBurstMs.join(', ')}',
+            ),
+            const Text(
+              'Starting listening or applying configuration resets these totals. No raw audio is saved.',
+            ),
+            const Divider(height: 32),
             SelectableText(
               'Microphone: ${c.active ? "ACTIVE" : "INACTIVE"}\nState: ${c.state.name}\nPCM stream requested: 48000 Hz / mono / 16 bit\nHardware rate: not exposed by capture plugin\nStrongest configured frequency: ${d.frequency.toStringAsFixed(0)} Hz\nSignal amplitude: ${d.level.toStringAsFixed(5)}\nThreshold: ${c.config.threshold}\nCandidate: ${d.candidate ? "YES" : "NO"}\nPreamble: ${d.preamble ? "FOUND" : "NOT FOUND"}\nPayload: ${d.payload}\nCRC: ${d.checksum}\nConfidence: ${(d.confidence * 100).toStringAsFixed(1)}%\nCRC-valid frames: ${d.acceptedFrames}\nRejected frames: ${d.rejectedFrames}\nLast validated detection: ${c.lastDetection ?? "None"}\n${c.error ?? ""}',
             ),

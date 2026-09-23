@@ -6,6 +6,49 @@ import 'package:acoustic_beacon/protocol/beacon_protocol.dart';
 void main() {
   const config = BeaconConfig();
   final codec = ExperimentalCodec();
+  test(
+    'diagnostics retain symbol and preamble totals without weakening validation',
+    () {
+      final received = <String>[];
+      final detector = BeaconDetector(
+        config,
+        (payload, _) => received.add(payload),
+      );
+      detector.add(
+        synthesize(config, codec.encode('wookiemeat'), repetitions: 2),
+      );
+      final d = detector.diagnostics;
+      expect(received, ['wookiemeat']);
+      expect(d.acceptedSymbols, 288);
+      expect(d.preamblesFound, 2);
+      expect(d.acceptedFrames, 2);
+      expect(d.validatedBeacons, 1);
+      expect(d.matchingFrames, 2);
+      expect(d.shortBursts, 0);
+      expect(d.longBursts, 0);
+      expect(d.quietBlocks, greaterThan(0));
+      expect(d.recentBurstMs.length, 20);
+      expect(d.preamble, isFalse);
+    },
+  );
+  test('diagnostics expose rejected durations and never invent a beacon', () {
+    final detector = BeaconDetector(
+      config,
+      (_, _) => fail('Invalid burst decoded'),
+    );
+    List<double> tone(int ms) =>
+        List.generate(48 * ms, (i) => .5 * sin(2 * pi * 20000 * i / 48000));
+    detector.add([
+      ...tone(10),
+      ...List.filled(4800, 0.0),
+      ...tone(100),
+      ...List.filled(4800, 0.0),
+    ]);
+    expect(detector.diagnostics.shortBursts, 1);
+    expect(detector.diagnostics.longBursts, 1);
+    expect(detector.diagnostics.acceptedSymbols, 0);
+    expect(detector.diagnostics.preamblesFound, 0);
+  });
   List<String> detect(List<double> samples, {int offset = 0}) {
     final received = <String>[];
     final detector = BeaconDetector(
