@@ -4,6 +4,36 @@ import 'package:acoustic_beacon/dsp/detector.dart';
 import 'package:acoustic_beacon/protocol/beacon_protocol.dart';
 
 void main() {
+  test(
+    'brief interference between symbols preserves repeated valid frames',
+    () {
+      const audible = BeaconConfig(zeroHz: 4000, oneHz: 5000);
+      final frame = ExperimentalCodec().encode('wookiemeat');
+      final samples = synthesize(audible, frame, repetitions: 2);
+      // Add 5 ms interference in the silence, away from the actual tone.
+      final frameSamples = frame.length * 8 * 3840;
+      for (var repeat = 0; repeat < 2; repeat++) {
+        final start = 24000 + repeat * (24000 + frameSamples);
+        for (var symbol = 0; symbol < frame.length * 8; symbol++) {
+          final glitch = start + symbol * 3840 + 2640;
+          for (var i = 0; i < 240; i++) {
+            samples[glitch + i] = .1 * sin(2 * pi * 4000 * i / 48000);
+          }
+        }
+      }
+      for (final offset in [0, 71, 239]) {
+        final received = <String>[];
+        final detector = BeaconDetector(audible, (p, _) => received.add(p));
+        final input = [...List.filled(offset, 0.0), ...samples];
+        for (var i = 0; i < input.length; i += 997) {
+          detector.add(input.sublist(i, min(i + 997, input.length)));
+        }
+        expect(received, ['wookiemeat']);
+        expect(detector.diagnostics.shortBursts, greaterThan(0));
+        expect(detector.diagnostics.acceptedFrames, 2);
+      }
+    },
+  );
   const config = BeaconConfig();
   final codec = ExperimentalCodec();
   test(

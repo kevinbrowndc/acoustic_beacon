@@ -747,10 +747,35 @@ class _DebugPageState extends State<DebugPage> {
           padding: const EdgeInsets.all(24),
           children: [
             const Text(
-              'Diagnostic build D01',
+              'Diagnostic build D07 diagnostic',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
+            SelectableText(
+              '${d.grid.summary}\nDecoded payload: ${d.payload.isEmpty ? "none" : d.payload}\nCRC: ${d.checksum}; valid frames: ${d.acceptedFrames}',
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            ),
+            const Text(
+              'Timing offsets are relative to listening start, modulo the configured symbol duration. The D05 burst trace below is observational only.',
+            ),
+            const Divider(height: 24),
+            SelectableText(
+              d.trace.summary(c.config.zeroHz, c.config.oneHz),
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            ),
+            ExpansionTile(
+              title: const Text('D05 detailed burst log'),
+              children: [
+                SelectableText(
+                  d.trace.details(c.config.zeroHz, c.config.oneHz),
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                ),
+              ],
+            ),
+            const Text(
+              'After one playback, Stop listening and photograph the D07 timing grid and retained D05 burst summary. Expand the log for individual bursts. Restart or Apply clears the log. No raw audio is saved.',
+            ),
+            const Divider(height: 24),
             SelectableText(
               'SESSION TOTALS — remain after Stop listening\n'
               'Active frequencies: ${c.config.zeroHz.toStringAsFixed(0)} / ${c.config.oneHz.toStringAsFixed(0)} Hz\n'
@@ -759,6 +784,7 @@ class _DebugPageState extends State<DebugPage> {
               'Candidate blocks: ${d.candidateBlocks}\n'
               'Non-candidate blocks: ${d.quietBlocks}\n'
               'Accepted symbols: ${d.acceptedSymbols}\n'
+              'Frequency boundaries: ${d.transitionBoundaries}\n'
               'Too-short bursts: ${d.shortBursts}\n'
               'Too-long bursts: ${d.longBursts}\n'
               'Preambles found: ${d.preamblesFound}\n'

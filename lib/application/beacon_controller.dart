@@ -151,6 +151,7 @@ class BeaconController extends ChangeNotifier {
     active = false;
     await _subscription?.cancel();
     _subscription = null;
+    detector.finishInput();
     try {
       await capture.stop();
       state = ListeningState.idle;
