@@ -10,6 +10,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from .config import Settings
+from .dashboard import router as dashboard_router
+from pathlib import Path as FilePath
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from .database import make_engine
 from .lookup import lookup_offers
 from .schemas import BeaconOffersOut
@@ -41,6 +45,15 @@ def create_app(settings: Settings | None = None, engine=None):
         docs_url="/docs" if settings.environment != "production" else None,
         redoc_url=None)
     app.state.engine = engine
+    app.state.settings = settings
+    app.state.dashboard_sessions = {}
+    app.include_router(dashboard_router)
+    dashboard_dist = FilePath(__file__).resolve().parents[2] / "dashboard" / "dist"
+    if dashboard_dist.is_dir():
+        @app.get("/merchant", include_in_schema=False)
+        def merchant_redirect():
+            return RedirectResponse("/merchant/")
+        app.mount("/merchant", StaticFiles(directory=dashboard_dist, html=True), name="merchant")
     if settings.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
             allow_methods=["GET"], allow_headers=["Accept"], allow_credentials=False)

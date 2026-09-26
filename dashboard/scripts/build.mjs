@@ -1,0 +1,11 @@
+import {cp, mkdir, rm} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+import {resolve,dirname} from 'node:path';
+const root=fileURLToPath(new URL('../',import.meta.url));
+const dist=resolve(root,'dist');
+if(dirname(dist)!==resolve(root))throw new Error('Invalid build target');
+await rm(dist,{recursive:true,force:true});
+await mkdir(dist,{recursive:true});
+await cp(resolve(root,'src'),dist,{recursive:true});
+await cp(resolve(root,'public'),dist,{recursive:true});
+console.log('Merchant dashboard built in dashboard/dist (native browser modules, no runtime dependencies).');

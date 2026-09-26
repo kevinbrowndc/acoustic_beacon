@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     database_url: SecretStr = SecretStr("sqlite:///./beacon.db")
     cors_origins: list[str] = []
     provision_test_beacon: bool = False
+    dashboard_dev_auth: bool = False
+    dashboard_api_base_url: str = ""
 
     @field_validator("database_url", mode="before")
     @classmethod
