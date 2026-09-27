@@ -1,14 +1,17 @@
 from typing import Literal
 
-from pydantic import SecretStr, field_validator, model_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="AB_", env_file=".env", extra="forbid", hide_input_in_errors=True)
+    model_config = SettingsConfigDict(env_prefix="AB_", env_file=".env", extra="forbid", hide_input_in_errors=True, populate_by_name=True)
     environment: Literal["development", "test", "production"] = "development"
-    database_url: SecretStr = SecretStr("sqlite:///./beacon.db")
+    database_url: SecretStr = Field(
+        default=SecretStr("sqlite:///./beacon.db"),
+        validation_alias=AliasChoices("AB_DATABASE_URL", "DATABASE_URL"),
+    )
     cors_origins: list[str] = []
     provision_test_beacon: bool = False
     dashboard_dev_auth: bool = False
