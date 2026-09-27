@@ -9,7 +9,7 @@ def build(root=None):
     destination = dashboard / 'dist'
     destination.mkdir(parents=True, exist_ok=True)
     # Explicit allowlist: no .env files, databases, tests or development tooling.
-    names = ['index.html', 'app.js', 'api.js', 'domain.js', 'views.js', 'styles.css']
+    names = ['index.html', 'demo.html', 'demo.js', 'app.js', 'api.js', 'domain.js', 'views.js', 'styles.css']
     for name in names:
         shutil.copyfile(dashboard / 'src' / name, destination / name)
     shutil.copyfile(dashboard / 'public' / 'beacon-logo.png', destination / 'beacon-logo.png')

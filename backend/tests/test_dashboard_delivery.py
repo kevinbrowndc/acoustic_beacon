@@ -28,3 +28,11 @@ def test_production_dashboard_entry_and_assets():
             assert client.get('/api/v1/dashboard/workspace').status_code == 503
     finally:
         engine.dispose()
+
+def test_public_demo_is_unauthenticated_and_network_isolated(client):
+    response = client.get('/demo')
+    assert response.status_code == 200
+    assert 'set-cookie' not in response.headers
+    assert "connect-src 'none'" in response.headers['content-security-policy']
+    assert 'https://acousticbeacon.com/assets/social-card.jpg' in response.text
+    assert client.get('/api/v1/dashboard/workspace').status_code in (401, 503)

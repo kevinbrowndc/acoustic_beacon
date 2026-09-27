@@ -1,3 +1,5 @@
+import {DemoApi, demoActivity} from './demo.js';
+const isDemo = /^\/demo\/?$/.test(location.pathname);
 import {Api} from './api.js';
 import {routes, escapeHtml as e, resolveApiBase, routeFromHash, statusOf, offerPayload, localDate, dateToApi} from './domain.js';
 import {icon, pill, button, empty, offersTable, overview, campaignCards, beaconPage, activityPage, accountPage, preview} from './views.js';
@@ -5,7 +7,7 @@ const root=document.querySelector('#app');
 const state={workspace:null, config:null, api:null, error:'', loading:true, busy:false, notice:'', search:'', filter:'all', menu:false};
 const names={dashboard:'Dashboard',offers:'Offers',campaigns:'Campaigns',beacon:'Beacon',activity:'Activity',account:'Account'};
 const icons=['grid','tag','layers','beacon','activity','user'];
-const brand=`<a class="brand" href="#/dashboard"><img src="./beacon-logo.png" alt=""><span>Acoustic<span>Beacon <small>FOR BUSINESS</small></span></span></a>`;
+const brand=`<a class="brand" href="#/dashboard"><img src="/merchant/beacon-logo.png" alt=""><span>Acoustic<span>Beacon <small>FOR BUSINESS</small></span></span></a>`;
 function announce(text) { document.querySelector('#announcer').textContent=text; }
 function notice(text) { state.notice=text; announce(text); }
 function errorBox(text) { return `<div class="alert" role="alert"><span>${e(text)}</span>${button('Try again','retry',true)}</div>`; }
@@ -20,11 +22,20 @@ function render() {
   else if(route==='offers') content=`<div class="page-intro"><div><span class="eyebrow">${manager?'MERCHANT-APPROVED CONTENT':'SOMETHING WORTH DISCOVERING'}</span><h1>${manager?'Network offers':'Your offers'}</h1><p>${manager?'Select authorized offers for your campaigns. Merchant content stays merchant-owned.':'Create, refine, and choose when your offers are available.'}</p></div>${manager?'':button('Create offer','new-offer')}</div><section class="panel"><div class="list-tools"><label class="search">${icon('search')}<span class="sr-only">Search offers</span><input id="offer-search" type="search" placeholder="Search offers…" value="${e(state.search)}"></label><label class="filter"><span class="sr-only">Offer status</span><select id="offer-filter">${['all','active','inactive','scheduled','expired'].map(s=>`<option value="${s}" ${state.filter===s?'selected':''}>${s==='all'?'All statuses':s[0].toUpperCase()+s.slice(1)}</option>`).join('')}</select></label><span class="result-count" id="offer-count"></span></div><div id="offer-results"></div></section>${manager?'<p class="footnote">Eligibility is checked again when a campaign is saved and when content is served. Revoked consent removes delivery access.</p>':''}`;
   else if(route==='campaigns') content=`<div class="page-intro"><div><span class="eyebrow">CURATE THE DISCOVERY</span><h1>Your campaigns</h1><p>Bring multiple ${manager?'authorized merchant ':''}offers together behind one beacon.</p></div>${button('Create campaign','new-campaign')}</div>${campaignCards(w)}`;
   else if(route==='beacon') content=beaconPage(w);
-  else if(route==='activity') content=activityPage();
+  else if(route==='activity') content=isDemo?demoActivity():activityPage();
   else if(route==='account') content=accountPage(w);
   else content=empty('This page is not here','Choose a workspace page from the navigation.','<a class="button" href="#/dashboard">Back to dashboard</a>');
   root.innerHTML=`<div class="app-shell ${state.menu?'menu-open':''}"><aside class="sidebar">${brand}<div class="workspace-label">WORKSPACE</div><nav aria-label="Main navigation">${routes.map((r,i)=>`<a href="#/${r}" class="nav-link ${route===r?'selected':''}" ${route===r?'aria-current="page"':''}>${icon(icons[i])}<span>${names[r]}</span>${route===r?'<b></b>':''}</a>`).join('')}</nav><div class="sidebar-bottom"><div class="local-badge"><i></i> Development workspace</div><p>Real backend. Sample content.<br>No customer activity is simulated.</p><a href="#/account" class="profile"><span class="avatar">${manager?'AB':'AB'}</span><span><strong>${manager?'Network workspace':'Merchant workspace'}</strong><small>${manager?'Manager':'Merchant'} account</small></span>${icon('arrow',15)}</a></div></aside><div class="main-wrap"><header class="topbar"><button class="icon-button mobile-menu" data-action="menu" aria-label="Toggle navigation" aria-expanded="${state.menu}">${icon('menu')}</button><div class="breadcrumb">Workspace <span>/</span> <strong>${e(names[route] || 'Page not found')}</strong></div><div class="topbar-right"><span class="dev-chip">Sample data</span><span class="role-chip">${manager?'Manager':'Merchant'}</span><a href="#/account" class="avatar" aria-label="Account">AB</a></div></header><main id="main" tabindex="-1">${state.error?errorBox(state.error):''}${state.notice?`<div class="toast" role="status">${icon('check',16)} ${e(state.notice)}<button data-action="dismiss" aria-label="Dismiss message">${icon('close',15)}</button></div>`:''}${state.loading?'<div class="refreshing" role="status">Refreshing workspace…</div>':''}${content}<footer class="page-footer"><span>Acoustic Beacon · Merchant workspace</span><span>Built around your business.</span></footer></main></div></div>`;
   if (route==='offers') renderOfferResults();
+  if(isDemo){
+    const banner=document.createElement('div');banner.className='toast';banner.textContent='PUBLIC DEMO - Fictional business and sample data. Changes stay in this tab and reset on reload.';document.querySelector('main').prepend(banner);
+    document.querySelector('.local-badge').textContent='Public product demo';
+    document.querySelector('.sidebar-bottom>p').textContent='Isolated sample workspace. No production account or data access.';
+    document.querySelector('.dev-chip').textContent='Public demo';
+    const logout=document.querySelector('[data-action="sign-out"]');if(logout)logout.textContent='Reset demo';
+    document.querySelectorAll('.account-details dd').forEach(el=>{if(el.textContent.includes('Development session'))el.textContent='No sign-in required - isolated demo';if(el.textContent.includes('Local development'))el.textContent='Public demonstration';});
+    const imageField=document.querySelector('[name="image_url"]');if(imageField)imageField.disabled=true;
+  }
   installImageFallbacks();
 }
 function installImageFallbacks() { root.querySelectorAll('.preview-art img').forEach(img=>img.addEventListener('error',()=>{img.parentElement.innerHTML=icon('beacon',46);},{once:true})); }
@@ -41,6 +52,7 @@ async function loadWorkspace() {
   finally {state.loading=false; render();}
 }
 async function initialize() {
+  if(isDemo){state.api=new DemoApi();state.config={production:false,development_sign_in:false};await loadWorkspace();return;}
   state.loading=true; state.error=''; render();
   try {
     const response=await fetch(new URL('/api/v1/dashboard/config', location.origin),{cache:'no-store',signal:AbortSignal.timeout(8000)});
@@ -99,6 +111,7 @@ root.addEventListener('click',async event=>{
     catch(error){state.error=error.message;}
     finally {state.busy=false;render();} return;
   }
+  if(action==='sign-out' && isDemo){state.api.reset();await loadWorkspace();return;}
   if(action==='sign-out') {
     control.disabled=true;
     try {await state.api.request('/sign-out',{method:'POST'});state.workspace=null;state.notice='';state.api.csrf='';}

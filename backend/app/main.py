@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Path, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -50,6 +50,15 @@ def create_app(settings: Settings | None = None, engine=None):
     app.include_router(dashboard_router)
     dashboard_dist = FilePath(__file__).resolve().parents[2] / "dashboard" / "dist"
     if dashboard_dist.is_dir():
+        @app.get('/demo', include_in_schema=False)
+        @app.get('/demo/', include_in_schema=False)
+        def public_demo():
+            return FileResponse(dashboard_dist / 'demo.html', headers={
+                'Content-Security-Policy': "default-src 'self'; connect-src 'none'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+                'Referrer-Policy': 'no-referrer',
+                'Cache-Control': 'no-store',
+            })
+
         @app.get("/", include_in_schema=False)
         def dashboard_entry():
             return RedirectResponse("/merchant/")
