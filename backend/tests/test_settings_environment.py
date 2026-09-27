@@ -50,3 +50,21 @@ def test_dotenv_generic_name(tmp_path):
 def test_unsupported_driver_is_not_silently_accepted():
     with pytest.raises(ValidationError, match='Use sqlite or postgresql'):
         Settings(environment='production', database_url=FAKE.replace('postgresql://', 'postgresql+asyncpg://'), _env_file=None)
+
+@pytest.mark.parametrize('scheme', ['postgresql', 'postgres', 'postgresql+psycopg'])
+def test_production_environment_loads_packaged_dbapi(monkeypatch, scheme):
+    # Constructing the engine imports its real DBAPI without connecting to a DB.
+    from app.database import make_engine
+    from psycopg import pq
+
+    monkeypatch.setenv('AB_ENVIRONMENT', 'production')
+    monkeypatch.setenv('DATABASE_URL', FAKE.replace('postgresql://', scheme + '://'))
+    settings = Settings(_env_file=None)
+    engine = make_engine(settings.database_url.get_secret_value())
+    try:
+        assert engine.dialect.name == 'postgresql'
+        assert engine.dialect.driver == 'psycopg'
+        assert engine.dialect.dbapi.__name__ == 'psycopg'
+        assert pq.__impl__ == 'binary'
+    finally:
+        engine.dispose()
