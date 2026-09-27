@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Float, ForeignKey, Integer, String, Text, Index
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -99,3 +99,17 @@ class Beacon(Identity, Timestamps, Base):
     owner_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
     campaign_id: Mapped[int | None] = mapped_column(ForeignKey("campaigns.id", ondelete="RESTRICT"), index=True)
     active: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class ActivityEvent(Base):
+    """Trusted event ingestion only; no customer identity or arbitrary public writes."""
+    __tablename__ = "activity_events"
+    __table_args__ = (
+        CheckConstraint("kind IN ('detections', 'views', 'saves', 'actions')", name="ck_activity_kind"),
+        Index("ix_activity_merchant_time", "merchant_id", "occurred_at"),
+    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    event_key: Mapped[str] = mapped_column(String(128), unique=True)
+    merchant_id: Mapped[int] = mapped_column(ForeignKey("merchants.id", ondelete="RESTRICT"))
+    kind: Mapped[str] = mapped_column(String(16))
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

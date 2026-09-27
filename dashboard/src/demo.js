@@ -1,3 +1,4 @@
+import {demoAnalytics} from './activity.js';
 export class DemoApi {
   constructor(){this.reset();}
   reset(){
@@ -8,6 +9,7 @@ export class DemoApi {
     ].map(o=>({...o,merchant:'Harbour & Pine',start_at:null,end_at:null,image_url:null})),campaigns:[{id:'morning',name:'Discover Harbour & Pine',active:true,sample:true,offer_ids:['coffee','lunch']},{id:'weekend',name:'Weekend discoveries',active:false,sample:true,offer_ids:['weekend']}],beacons:[{id:'demo-beacon',beacon_id:'0xABC123',active:true,campaign_id:'morning',served_offers:[]}],analytics_available:false};
   }
   async request(path,{method='GET',body}={}){
+    if(path.startsWith('/activity?period='))return demoAnalytics(path.split('=')[1]);
     if(path==='/workspace'){
       for(const beacon of this.w.beacons){const c=this.w.campaigns.find(c=>c.id===beacon.campaign_id);beacon.served_offers=c?.active?this.w.offers.filter(o=>o.active&&c.offer_ids.includes(o.id)).map(o=>({...o,merchant:{name:o.merchant}})):[];}
       return structuredClone(this.w);
@@ -24,4 +26,3 @@ export class DemoApi {
     throw Error('This action is unavailable in the public demo.');
   }
 }
-export const demoActivity=()=>`<div class="page-intro"><div><span class="eyebrow">ILLUSTRATIVE DEMO DATA</span><h1>Every discovery tells a story.</h1><p>Sample activity shows how campaign reporting could look. These are not real detections or customer events.</p></div></div><div class="stats"><div class="stat"><span>Sample detections</span><strong>248</strong><small>Illustrative day</small></div><div class="stat"><span>Sample offer views</span><strong>176</strong><small>Illustrative day</small></div><div class="stat"><span>Sample saves</span><strong>42</strong><small>Illustrative day</small></div></div><section class="panel"><div class="panel-heading"><h2>Example activity</h2></div><div class="campaign-card"><h3>Coffee offer discovered</h3><p>Sample event · A visitor explored the morning campaign.</p><h3>Lunch offer saved</h3><p>Sample event · A visitor saved an offer for later.</p><h3>Campaign updated</h3><p>Sample event · Two offers connected to one beacon.</p></div></section>`;

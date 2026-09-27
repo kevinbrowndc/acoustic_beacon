@@ -33,7 +33,7 @@ def test_session_and_csrf(dashboard):
     assert response.status_code == 403
     workspace=login(dashboard)
     assert workspace['account']['role']=='merchant'
-    assert workspace['analytics_available'] is False
+    assert workspace['analytics_available'] is True
     assert 'httponly' in str(dashboard.cookies).lower() or dashboard.cookies.get('ab_dashboard_session')
     dashboard.headers.pop('X-CSRF-Token')
     assert dashboard.post('/api/v1/dashboard/offers',json=payload()).status_code == 403

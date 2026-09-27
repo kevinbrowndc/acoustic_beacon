@@ -1,10 +1,12 @@
-import {DemoApi, demoActivity} from './demo.js';
+import {activityCard, activityView} from './activity.js';
+import {DemoApi} from './demo.js';
 const isDemo = /^\/demo\/?$/.test(location.pathname);
 import {Api} from './api.js';
 import {routes, escapeHtml as e, resolveApiBase, routeFromHash, statusOf, offerPayload, localDate, dateToApi} from './domain.js';
-import {icon, pill, button, empty, offersTable, overview, campaignCards, beaconPage, activityPage, accountPage, preview} from './views.js';
+import {icon, pill, button, empty, offersTable, overview, campaignCards, beaconPage, accountPage, preview} from './views.js';
 const root=document.querySelector('#app');
 const state={workspace:null, config:null, api:null, error:'', loading:true, busy:false, notice:'', search:'', filter:'all', menu:false};
+Object.assign(state,{activity:null,today:null,period:'today',activityLoading:false,activityError:'',activityRequest:0});
 const names={dashboard:'Dashboard',offers:'Offers',campaigns:'Campaigns',beacon:'Beacon',activity:'Activity',account:'Account'};
 const icons=['grid','tag','layers','beacon','activity','user'];
 const brand=`<a class="brand" href="#/dashboard"><img src="/merchant/beacon-logo.png" alt=""><span>Acoustic<span>Beacon <small>FOR BUSINESS</small></span></span></a>`;
@@ -18,11 +20,11 @@ function render() {
   }
   const w=state.workspace, route=routeFromHash(location.hash), manager=w.account.role==='manager';
   let content='';
-  if(route==='dashboard') content=overview(w);
+  if(route==='dashboard') content=overview(w,activityCard(state.today,state.activityError));
   else if(route==='offers') content=`<div class="page-intro"><div><span class="eyebrow">${manager?'MERCHANT-APPROVED CONTENT':'SOMETHING WORTH DISCOVERING'}</span><h1>${manager?'Network offers':'Your offers'}</h1><p>${manager?'Select authorized offers for your campaigns. Merchant content stays merchant-owned.':'Create, refine, and choose when your offers are available.'}</p></div>${manager?'':button('Create offer','new-offer')}</div><section class="panel"><div class="list-tools"><label class="search">${icon('search')}<span class="sr-only">Search offers</span><input id="offer-search" type="search" placeholder="Search offers…" value="${e(state.search)}"></label><label class="filter"><span class="sr-only">Offer status</span><select id="offer-filter">${['all','active','inactive','scheduled','expired'].map(s=>`<option value="${s}" ${state.filter===s?'selected':''}>${s==='all'?'All statuses':s[0].toUpperCase()+s.slice(1)}</option>`).join('')}</select></label><span class="result-count" id="offer-count"></span></div><div id="offer-results"></div></section>${manager?'<p class="footnote">Eligibility is checked again when a campaign is saved and when content is served. Revoked consent removes delivery access.</p>':''}`;
   else if(route==='campaigns') content=`<div class="page-intro"><div><span class="eyebrow">CURATE THE DISCOVERY</span><h1>Your campaigns</h1><p>Bring multiple ${manager?'authorized merchant ':''}offers together behind one beacon.</p></div>${button('Create campaign','new-campaign')}</div>${campaignCards(w)}`;
   else if(route==='beacon') content=beaconPage(w);
-  else if(route==='activity') content=isDemo?demoActivity():activityPage();
+  else if(route==='activity') content=activityView(state.activity,state.period,state.activityLoading,state.activityError);
   else if(route==='account') content=accountPage(w);
   else content=empty('This page is not here','Choose a workspace page from the navigation.','<a class="button" href="#/dashboard">Back to dashboard</a>');
   root.innerHTML=`<div class="app-shell ${state.menu?'menu-open':''}"><aside class="sidebar">${brand}<div class="workspace-label">WORKSPACE</div><nav aria-label="Main navigation">${routes.map((r,i)=>`<a href="#/${r}" class="nav-link ${route===r?'selected':''}" ${route===r?'aria-current="page"':''}>${icon(icons[i])}<span>${names[r]}</span>${route===r?'<b></b>':''}</a>`).join('')}</nav><div class="sidebar-bottom"><div class="local-badge"><i></i> Development workspace</div><p>Real backend. Sample content.<br>No customer activity is simulated.</p><a href="#/account" class="profile"><span class="avatar">${manager?'AB':'AB'}</span><span><strong>${manager?'Network workspace':'Merchant workspace'}</strong><small>${manager?'Manager':'Merchant'} account</small></span>${icon('arrow',15)}</a></div></aside><div class="main-wrap"><header class="topbar"><button class="icon-button mobile-menu" data-action="menu" aria-label="Toggle navigation" aria-expanded="${state.menu}">${icon('menu')}</button><div class="breadcrumb">Workspace <span>/</span> <strong>${e(names[route] || 'Page not found')}</strong></div><div class="topbar-right"><span class="dev-chip">Sample data</span><span class="role-chip">${manager?'Manager':'Merchant'}</span><a href="#/account" class="avatar" aria-label="Account">AB</a></div></header><main id="main" tabindex="-1">${state.error?errorBox(state.error):''}${state.notice?`<div class="toast" role="status">${icon('check',16)} ${e(state.notice)}<button data-action="dismiss" aria-label="Dismiss message">${icon('close',15)}</button></div>`:''}${state.loading?'<div class="refreshing" role="status">Refreshing workspace…</div>':''}${content}<footer class="page-footer"><span>Acoustic Beacon · Merchant workspace</span><span>Built around your business.</span></footer></main></div></div>`;
@@ -47,9 +49,20 @@ function renderOfferResults() {
 }
 async function loadWorkspace() {
   state.loading=true; state.error=''; render();
-  try {state.workspace=await state.api.request('/workspace');}
+  try {state.workspace=await state.api.request('/workspace');state.today=null;await loadActivity(state.period);}
   catch(error) {if(error.status===401) state.workspace=null; else state.error=error.message;}
   finally {state.loading=false; render();}
+}
+async function loadActivity(period) {
+  const request=++state.activityRequest;state.period=period;state.activityLoading=true;state.activity=null;state.activityError='';render();
+  try {
+    const result=await state.api.request('/activity?period='+period);
+    if(request!==state.activityRequest)return;
+    state.activity=result;
+    if(period==='today')state.today=result;
+    else if(!state.today)state.today=await state.api.request('/activity?period=today');
+  }catch(error){if(request===state.activityRequest)state.activityError=error.message;}
+  finally{if(request===state.activityRequest){state.activityLoading=false;render();}}
 }
 async function initialize() {
   if(isDemo){state.api=new DemoApi();state.config={production:false,development_sign_in:false};await loadWorkspace();return;}
@@ -99,6 +112,7 @@ root.addEventListener('change',event=>{if(event.target.id==='offer-filter'){stat
 root.addEventListener('click',async event=>{
   const control=event.target.closest('[data-action]'); if(!control)return;
   const {action,id,role}=control.dataset;
+  if(action==='activity-period')return loadActivity(control.dataset.period);
   if(action==='new-offer'||action==='edit-offer'||action==='preview-offer')return openOffer(id);
   if(action==='new-campaign'||action==='edit-campaign')return openCampaign(id);
   if(action==='close-dialog')return document.querySelector('dialog')?.close();
@@ -111,10 +125,10 @@ root.addEventListener('click',async event=>{
     catch(error){state.error=error.message;}
     finally {state.busy=false;render();} return;
   }
-  if(action==='sign-out' && isDemo){state.api.reset();await loadWorkspace();return;}
+  if(action==='sign-out' && isDemo){state.api.reset();state.today=null;state.period='today';await loadWorkspace();return;}
   if(action==='sign-out') {
     control.disabled=true;
-    try {await state.api.request('/sign-out',{method:'POST'});state.workspace=null;state.notice='';state.api.csrf='';}
+    try {await state.api.request('/sign-out',{method:'POST'});state.workspace=null;state.today=null;state.activity=null;state.activityRequest++;state.notice='';state.api.csrf='';}
     catch(error){state.error=error.message;}
     render();
   }

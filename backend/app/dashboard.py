@@ -190,7 +190,7 @@ def workspace(request: Request, response: Response, user: User = Depends(actor),
             "csrf_token": csrf(request.cookies.get(COOKIE, "")),
             "offers": [offer_json(o, m) for o, m in session.execute(offers_query.order_by(Offer.updated_at.desc()))],
             "campaigns": [campaign_json(session, c) for c in campaigns], "beacons": beacons,
-            "analytics_available": False, "development": True}
+            "analytics_available": merchant is not None, "development": True}
 
 
 @router.post("/offers", status_code=201)
@@ -279,3 +279,12 @@ def update_assignment(public_id: UUID, data: Assignment, user: User = Depends(ac
         assign_beacon(session, user.id, beacon, owned_campaign(session, user, data.campaign_id))
     session.commit()
     return {"updated": True}
+
+
+@router.get("/activity")
+def customer_activity(response: Response, period: Literal['today', '7d', '30d', '90d', '12m'] = 'today',
+                      user: User = Depends(actor), session: Session = Depends(db)):
+    from .activity import summarize
+    response.headers['Cache-Control'] = 'no-store'
+    merchant = merchant_for(session, user)
+    return summarize(session, merchant.id, period, datetime.now(timezone.utc))
