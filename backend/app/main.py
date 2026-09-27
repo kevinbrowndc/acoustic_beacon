@@ -39,6 +39,13 @@ def create_app(settings: Settings | None = None, engine=None):
 
     @asynccontextmanager
     async def lifespan(_):
+        if managed_engine and settings.environment == 'production':
+            from .account_startup import prepare_accounts
+            # No secrets or SQL parameters in a failed startup traceback.
+            try:
+                prepare_accounts(engine, settings)
+            except Exception:
+                raise RuntimeError('Account initialization failed; check migration permissions and private bootstrap configuration') from None
         yield
         if managed_engine:
             engine.dispose()
@@ -68,6 +75,10 @@ def create_app(settings: Settings | None = None, engine=None):
         @app.get("/merchant", include_in_schema=False)
         def merchant_redirect():
             return RedirectResponse("/merchant/")
+        @app.get('/merchant/signup', include_in_schema=False)
+        @app.get('/merchant/signup/', include_in_schema=False)
+        def merchant_signup_page():
+            return FileResponse(dashboard_dist / 'index.html', headers={'Cache-Control':'no-store'})
         app.mount("/merchant", StaticFiles(directory=dashboard_dist, html=True), name="merchant")
     if settings.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
@@ -81,7 +92,7 @@ def create_app(settings: Settings | None = None, engine=None):
     def readiness(session: Annotated[Session, Depends(get_session)], response: Response):
         # Verifies the deployed migration, not just that PostgreSQL accepts TCP.
         revision = session.execute(text("SELECT version_num FROM alembic_version")).scalar_one_or_none()
-        if revision not in {"0001", "0002", "0003"}:
+        if revision not in {"0001", "0002", "0003", "0004"}:
             raise HTTPException(503, "Database migration pending", headers={"Cache-Control": "no-store"})
         session.execute(text("SELECT payload_id FROM beacons LIMIT 0"))
         response.headers["Cache-Control"] = "no-store"
@@ -89,8 +100,8 @@ def create_app(settings: Settings | None = None, engine=None):
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, error):
-        if request.url.path == '/api/v1/dashboard/session':
-            return JSONResponse(status_code=422, content={'detail':'Enter a valid email and password'}, headers={'Cache-Control':'no-store'})
+        if request.url.path in {'/api/v1/dashboard/session', '/api/v1/dashboard/register'}:
+            return JSONResponse(status_code=422, content={'detail':'Check your account details. Passwords must match and contain at least 15 characters for signup.'}, headers={'Cache-Control':'no-store'})
         return await request_validation_exception_handler(request, error)
 
     @app.exception_handler(SQLAlchemyError)

@@ -1,6 +1,8 @@
+> Public Merchant registration and shell-free private Manager setup are now available. See [MERCHANT_SIGNUP.md](MERCHANT_SIGNUP.md). The interactive command below remains an operator fallback.
+
 # Production account access
 
-The existing dashboard now authenticates email/password against `users` and additive `account_credentials` / `account_sessions` tables in the configured PostgreSQL database. No Supabase Auth service or new hosting service is required. Existing role/ownership enforcement remains authoritative. No roles can be chosen at login and there is no public registration endpoint.
+The existing dashboard now authenticates email/password against `users` and additive `account_credentials` / `account_sessions` tables in the configured PostgreSQL database. No Supabase Auth service or new hosting service is required. Existing role/ownership enforcement remains authoritative. No roles can be chosen at login and public registration can create Merchant accounts only.
 
 ## One-time private setup
 

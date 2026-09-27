@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     cors_origins: list[str] = []
     provision_test_beacon: bool = False
     dashboard_dev_auth: bool = False
+    bootstrap_manager_email: SecretStr | None = None
+    bootstrap_manager_password: SecretStr | None = None
     dashboard_api_base_url: str = ""
     dashboard_public_origin: str = "https://merchant.acousticbeacon.com"
 

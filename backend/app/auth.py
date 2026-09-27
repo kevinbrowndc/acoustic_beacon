@@ -37,19 +37,20 @@ def require_origin(request):
     if request.headers.get('origin') != expected:
         raise HTTPException(403, 'Cross-origin session actions are not allowed')
 
-def rate_limit(session, email, now):
+def rate_limit(session, email, now, signup=False):
     from sqlalchemy.dialects.postgresql import insert as pg_insert
     from sqlalchemy.dialects.sqlite import insert as sqlite_insert
     insert = pg_insert if session.bind.dialect.name == 'postgresql' else sqlite_insert
     session.execute(delete(LoginRate).where(LoginRate.expires_at < now))
     # Shared DB counters work across processes/restarts. No trust in forwarded client IPs.
-    for key, seconds, limit in [('global',60,30), (digest(email),900,10)]:
+    limits = [('signup-global',3600,20), ('signup-'+digest(email),3600,5)] if signup else [('global',60,30), (digest(email),900,10)]
+    for key, seconds, limit in limits:
         bucket = int(now.timestamp()) // seconds
         stmt = insert(LoginRate).values(key=f'{key}:{bucket}', count=1, expires_at=now+timedelta(seconds=seconds*2))
         count = session.execute(stmt.on_conflict_do_update(index_elements=['key'],set_={'count':LoginRate.count+1}).returning(LoginRate.count)).scalar_one()
         if count > limit:
             session.commit()
-            raise HTTPException(429, 'Too many sign-in attempts. Please try again later.', headers={'Retry-After':str(seconds)})
+            raise HTTPException(429, 'Too many attempts. Please try again later.', headers={'Retry-After':str(seconds)})
     session.commit()
 
 def authenticate(request, response, session, email, password):
@@ -61,12 +62,15 @@ def authenticate(request, response, session, email, password):
     valid = verify_password(password, credential.password_hash if credential else DUMMY)
     if not valid or not credential or not credential.enabled:
         raise HTTPException(401, 'Email or password is incorrect')
+    return issue_session(request,response,session,user.id,now)
+
+def issue_session(request,response,session,user_id,now):
     previous = request.cookies.get(COOKIE)
     if previous:
         session.execute(delete(AccountSession).where(AccountSession.token_hash == digest(previous)))
     session.execute(delete(AccountSession).where(AccountSession.expires_at <= now))
     token = secrets.token_urlsafe(32)
-    session.add(AccountSession(token_hash=digest(token),user_id=user.id,expires_at=now+timedelta(hours=8)))
+    session.add(AccountSession(token_hash=digest(token),user_id=user_id,expires_at=now+timedelta(hours=8)))
     session.commit()
     response.set_cookie(COOKIE,token,httponly=True,secure=True,samesite='strict',max_age=28800,path='/')
     response.headers['Cache-Control']='no-store'

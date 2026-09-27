@@ -14,10 +14,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from .domain import AuthorizationError, assign_beacon, attach_offer, create_offer, require_campaign_owner
 from .lookup import aware, lookup_offers
-from .models import Beacon, Campaign, CampaignOffer, Merchant, Offer, User
+from .models import Beacon, Campaign, CampaignOffer, Merchant, Offer, User, AccountCredential
 from .schemas import OfferInput
 from . import auth
 
@@ -308,3 +309,53 @@ def customer_activity(response: Response, period: Literal['today', '7d', '30d', 
     response.headers['Cache-Control'] = 'no-store'
     merchant = merchant_for(session, user)
     return summarize(session, merchant.id, period, datetime.now(timezone.utc))
+
+
+class MerchantRegistration(BaseModel):
+    model_config = ConfigDict(extra='forbid', hide_input_in_errors=True)
+    business_name: str = Field(min_length=1, max_length=200)
+    contact_name: str = Field(min_length=1, max_length=200)
+    email: str = Field(min_length=3, max_length=320)
+    password: SecretStr = Field(min_length=15, max_length=256)
+    confirm_password: SecretStr = Field(min_length=15, max_length=256)
+
+    @field_validator('business_name','contact_name')
+    @classmethod
+    def nonblank(cls,value):
+        value=value.strip()
+        if not value:raise ValueError('Required')
+        return value
+
+    @field_validator('email')
+    @classmethod
+    def email_format(cls,value):
+        import re
+        value=value.strip().lower()
+        if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+",value):
+            raise ValueError('Invalid email')
+        return value
+
+    @model_validator(mode='after')
+    def passwords_match(self):
+        if self.password.get_secret_value()!=self.confirm_password.get_secret_value():
+            raise ValueError('Passwords must match')
+        return self
+
+
+@router.post('/register',status_code=201)
+def register_merchant(data: MerchantRegistration, request: Request, response: Response, session: Session = Depends(db)):
+    auth.require_origin(request)
+    now=datetime.now(timezone.utc)
+    auth.rate_limit(session,data.email,now,signup=True)
+    # Hash on both duplicate and new registrations; never reveal an existing account's role.
+    encoded=auth.hash_password(data.password.get_secret_value())
+    try:
+        user=User(email=data.email,role='merchant')
+        session.add(user);session.flush()
+        session.add(Merchant(owner_user_id=user.id,name=data.business_name,contact_name=data.contact_name,description='',active=True))
+        session.add(AccountCredential(user_id=user.id,password_hash=encoded,enabled=True))
+        session.flush()
+        return auth.issue_session(request,response,session,user.id,now)
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409,'Unable to create an account with these details. Try signing in or contact support.',headers={'Cache-Control':'no-store'}) from None

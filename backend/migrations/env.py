@@ -11,6 +11,10 @@ if context.is_offline_mode():
         dialect_opts={"paramstyle": "named"})
     with context.begin_transaction():
         context.run_migrations()
+elif config.attributes.get('connection') is not None:
+    context.configure(connection=config.attributes['connection'], target_metadata=Base.metadata, compare_type=True)
+    with context.begin_transaction():
+        context.run_migrations()
 else:
     engine = make_engine(url)
     try:

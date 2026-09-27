@@ -1,3 +1,5 @@
+import {signupForm, registrationPayload} from './account.js';
+const isSignup=/^\/merchant\/signup\/?$/.test(location.pathname);
 import {activityCard, activityView} from './activity.js';
 import {DemoApi} from './demo.js';
 const isDemo = /^\/demo\/?$/.test(location.pathname);
@@ -14,8 +16,11 @@ function announce(text) { document.querySelector('#announcer').textContent=text;
 function notice(text) { state.notice=text; announce(text); }
 function errorBox(text) { return `<div class="alert" role="alert"><span>${e(text)}</span>${button('Try again','retry',true)}</div>`; }
 function render() {
+  if(!state.workspace && isSignup){
+    root.innerHTML=`<div class="signin"><div class="signin-brand">${brand}</div><main id="main" class="signin-card">${state.error?errorBox(state.error):''}${signupForm(state.loading)}</main></div>`;return;
+  }
   if (!state.workspace) {
-    root.innerHTML=`<div class="signin"><div class="signin-brand">${brand}</div><main id="main" class="signin-card"><span class="eyebrow">ACOUSTIC BEACON FOR BUSINESS</span><h1>Good things<br>start with a signal.</h1><p>Your offers. Your campaigns. One connected workspace.</p>${state.error?errorBox(state.error):''}${state.loading?'<div class="loading" role="status">Opening your workspace…</div>':state.config?.development_sign_in?`<div class="dev-label">Local development workspace</div><p class="small">Explore with persisted sample data. This is not a production sign-in.</p><button class="button wide" data-action="login" data-role="merchant" ${state.busy?'disabled':''}>Open merchant workspace ${icon('arrow')}</button><button class="button secondary wide" data-action="login" data-role="manager" ${state.busy?'disabled':''}>Explore manager workspace</button>`:`<form data-form="production-login"><label>Email<input name="email" type="email" autocomplete="username" required maxlength="320"></label><label>Password<input name="password" type="password" autocomplete="current-password" required maxlength="256"></label><p class="form-error" role="alert"></p><button class="button wide" type="submit">Sign in</button></form><p class="small">Use your Acoustic Beacon account. Contact your account administrator if you need access or a password reset.</p>`}</main><p class="signin-footer">Connect a signal to something worth discovering.</p></div>`;
+    root.innerHTML=`<div class="signin"><div class="signin-brand">${brand}</div><main id="main" class="signin-card"><span class="eyebrow">ACOUSTIC BEACON FOR BUSINESS</span><h1>Good things<br>start with a signal.</h1><p>Your offers. Your campaigns. One connected workspace.</p>${state.error?errorBox(state.error):''}${state.loading?'<div class="loading" role="status">Opening your workspace…</div>':state.config?.development_sign_in?`<div class="dev-label">Local development workspace</div><p class="small">Explore with persisted sample data. This is not a production sign-in.</p><button class="button wide" data-action="login" data-role="merchant" ${state.busy?'disabled':''}>Open merchant workspace ${icon('arrow')}</button><button class="button secondary wide" data-action="login" data-role="manager" ${state.busy?'disabled':''}>Explore manager workspace</button>`:`<form data-form="production-login"><label>Email<input name="email" type="email" autocomplete="username" required maxlength="320"></label><label>Password<input name="password" type="password" autocomplete="current-password" required maxlength="256"></label><p class="form-error" role="alert"></p><button class="button wide" type="submit">Sign in</button></form><p class="small"><a class="button secondary wide" href="/merchant/signup">Create Merchant Account</a></p><p class="small">Use your Acoustic Beacon account. Contact your account administrator if you need access or a password reset.</p>`}</main><p class="signin-footer">Connect a signal to something worth discovering.</p></div>`;
     return;
   }
   const w=state.workspace, route=routeFromHash(location.hash), manager=w.account.role==='manager';
@@ -55,7 +60,7 @@ function renderOfferResults() {
 }
 async function loadWorkspace() {
   state.loading=true; state.error=''; render();
-  try {state.workspace=await state.api.request('/workspace');state.today=null;await loadActivity(state.period);}
+  try {state.workspace=await state.api.request('/workspace');if(isSignup){location.replace('/merchant/');return;}state.today=null;await loadActivity(state.period);}
   catch(error) {if(error.status===401) state.workspace=null; else state.error=error.message;}
   finally {state.loading=false; render();}
 }
@@ -139,6 +144,13 @@ root.addEventListener('click',async event=>{
 root.addEventListener('submit',async event=>{
   const form=event.target.closest('form[data-form]');if(!form)return;event.preventDefault();
   const data=new FormData(form), type=form.dataset.form, id=form.dataset.id;
+  if(type==='production-signup'){
+    const submit=form.querySelector('[type=submit]'),errorBox=form.querySelector('.form-error');
+    submit.disabled=true;errorBox.textContent='';
+    try{await state.api.request('/register',{method:'POST',body:registrationPayload(data)});form.reset();location.assign('/merchant/');}
+    catch(error){errorBox.textContent=error.message;form.querySelector('[name=password]').value='';form.querySelector('[name=confirm_password]').value='';submit.disabled=false;}
+    return;
+  }
   if(type==='production-login'){
     const submit=form.querySelector('[type=submit]');submit.disabled=true;submit.textContent='Signing in…';
     const errorBox=form.querySelector('.form-error');errorBox.textContent='';
