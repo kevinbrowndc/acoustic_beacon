@@ -1,5 +1,7 @@
 # Supabase / free-host deployment handoff
 
+SUPERSEDED: Leapcell signup is unavailable to Kevin ("Error, back to home"). Do not retry signup. Use NORTHFLANK_DEPLOYMENT.md for the current candidate and configuration. The remaining Leapcell notes are historical, not active instructions.
+
 Status: PREPARED, NOT DEPLOYED. No public URL, Supabase connection, migration execution, or DNS changes are claimed. Existing production merchant authentication is not implemented; deploying the current dashboard exposes its sign-in-unavailable state, not a working authenticated management workflow. Local merchant/manager workflows are preserved. Never enable development identity publicly.
 
 ## Host decision (checked 2026-09-26)
