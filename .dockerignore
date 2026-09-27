@@ -4,6 +4,7 @@
 !deploy/Dockerfile
 !deploy/build_dashboard.py
 !backend/
+!backend/Dockerfile
 !backend/requirements-lock.txt
 !backend/alembic.ini
 !backend/app/

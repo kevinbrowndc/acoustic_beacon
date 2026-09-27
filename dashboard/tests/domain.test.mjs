@@ -5,6 +5,7 @@ import {Api} from '../src/api.js';
 test('production API config never falls back to local data',()=>{
   for(const url of ['', 'http://localhost:8000','https://localhost','https://user:pass@example.com','https://api.example.com/path']) assert.throws(()=>resolveApiBase(url,true,'http://localhost'));
   assert.equal(resolveApiBase('https://api.example.com',true,'http://localhost'),'https://api.example.com');
+  assert.equal(resolveApiBase('',true,'https://beacon.example.com'),'https://beacon.example.com');
   assert.equal(resolveApiBase('',false,'http://127.0.0.1:8000'),'http://127.0.0.1:8000');
 });
 test('offer states use real dates and activation',()=>{

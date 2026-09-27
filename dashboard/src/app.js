@@ -44,10 +44,14 @@ async function initialize() {
   state.loading=true; state.error=''; render();
   try {
     const response=await fetch(new URL('/api/v1/dashboard/config', location.origin),{cache:'no-store',signal:AbortSignal.timeout(8000)});
-    if(!response.ok) throw new Error('The backend configuration is unavailable. Start the local server and try again.');
+    if(!response.ok) throw new Error('The backend configuration is unavailable. Please try again shortly.');
     state.config=await response.json();
     state.api=new Api(resolveApiBase(state.config.api_base_url,state.config.production,location.origin));
-    await loadWorkspace();
+    if (state.config.production && !state.config.development_sign_in) {
+      state.loading=false; render();
+    } else {
+      await loadWorkspace();
+    }
   } catch(error) {state.error=error.message; state.loading=false; render();}
 }
 function modal(title,subtitle,body,formType,id='') {

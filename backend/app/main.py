@@ -50,6 +50,10 @@ def create_app(settings: Settings | None = None, engine=None):
     app.include_router(dashboard_router)
     dashboard_dist = FilePath(__file__).resolve().parents[2] / "dashboard" / "dist"
     if dashboard_dist.is_dir():
+        @app.get("/", include_in_schema=False)
+        def dashboard_entry():
+            return RedirectResponse("/merchant/")
+
         @app.get("/merchant", include_in_schema=False)
         def merchant_redirect():
             return RedirectResponse("/merchant/")

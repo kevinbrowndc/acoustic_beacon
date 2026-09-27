@@ -1,7 +1,6 @@
 export const routes = ['dashboard', 'offers', 'campaigns', 'beacon', 'activity', 'account'];
 export const escapeHtml = (value = '') => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function resolveApiBase(value, production, origin) {
-  if (production && !value) throw new Error('An explicit HTTPS API address is required for this deployment.');
   const url = new URL(value || origin);
   const local = ['localhost','127.0.0.1','[::1]','10.0.2.2'].includes(url.hostname) || url.hostname.endsWith('.localhost');
   if (url.username || url.password || url.search || url.hash || url.pathname !== '/' ||
