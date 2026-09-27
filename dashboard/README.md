@@ -1,3 +1,5 @@
+> Production access update: email/password authentication and persistent sessions are now implemented. See [production setup](../backend/PRODUCTION_SIGN_IN.md) for the one-time private Manager setup. Older phase notes below describe the earlier development-only state.
+
 # Acoustic Beacon merchant dashboard
 
 Native browser ES modules and responsive CSS, served by the existing FastAPI application. No frontend runtime dependencies or external font/CDN requests. The approved consumer logo is reused unchanged.

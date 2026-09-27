@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     provision_test_beacon: bool = False
     dashboard_dev_auth: bool = False
     dashboard_api_base_url: str = ""
+    dashboard_public_origin: str = "https://merchant.acousticbeacon.com"
 
     @field_validator("database_url", mode="before")
     @classmethod
@@ -24,6 +25,15 @@ class Settings(BaseSettings):
         for prefix in ("postgres://", "postgresql://"):
             if raw.startswith(prefix):
                 return "postgresql+psycopg://" + raw[len(prefix):]
+        return value
+
+    @field_validator("dashboard_public_origin")
+    @classmethod
+    def secure_dashboard_origin(cls, value):
+        from urllib.parse import urlsplit
+        url = urlsplit(value)
+        if url.scheme != 'https' or not url.netloc or url.username or url.password or url.path or url.query or url.fragment:
+            raise ValueError('Dashboard origin must be an explicit HTTPS origin')
         return value
 
     @field_validator("cors_origins")

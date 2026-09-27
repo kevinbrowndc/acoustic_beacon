@@ -1,6 +1,6 @@
 """Merchant management API. Development identity is explicitly loopback-only.
 
-Production identity-provider integration is intentionally fail-closed.
+Production accounts use persistent password credentials and opaque server sessions.
 """
 import hashlib
 import hmac
@@ -11,7 +11,7 @@ from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -19,6 +19,7 @@ from .domain import AuthorizationError, assign_beacon, attach_offer, create_offe
 from .lookup import aware, lookup_offers
 from .models import Beacon, Campaign, CampaignOffer, Merchant, Offer, User
 from .schemas import OfferInput
+from . import auth
 
 router = APIRouter(prefix="/api/v1/dashboard", tags=["Merchant dashboard"])
 COOKIE = "ab_dashboard_session"
@@ -47,7 +48,7 @@ def csrf(token):
 
 def actor(request: Request, session: Session = Depends(db)):
     if not development_enabled(request):
-        raise HTTPException(503, "Production account authentication is not connected yet")
+        return auth.current_user(request, session)
     token = request.cookies.get(COOKIE, "")
     entry = request.app.state.dashboard_sessions.get(hashlib.sha256(token.encode()).hexdigest())
     if not entry or entry[1] <= time.time():
@@ -71,7 +72,24 @@ class SignIn(BaseModel):
 def configuration(request: Request):
     return {"development_sign_in": bool(development_enabled(request)),
             "api_base_url": request.app.state.settings.dashboard_api_base_url,
+            "password_sign_in": True,
             "production": request.app.state.settings.environment == "production"}
+
+
+class PasswordSignIn(BaseModel):
+    model_config = ConfigDict(extra='forbid', hide_input_in_errors=True)
+    email: str = Field(min_length=3, max_length=320)
+    password: SecretStr = Field(min_length=1, max_length=256)
+
+    @field_validator('email')
+    @classmethod
+    def normalize_email(cls, value):
+        return value.strip().lower()
+
+
+@router.post('/session')
+def password_sign_in(data: PasswordSignIn, request: Request, response: Response, session: Session = Depends(db)):
+    return auth.authenticate(request, response, session, data.email, data.password.get_secret_value())
 
 
 @router.post("/dev-session")
@@ -103,7 +121,9 @@ def sign_in(data: SignIn, request: Request, response: Response, session: Session
 
 
 @router.post("/sign-out")
-def sign_out(request: Request, response: Response, user: User = Depends(actor)):
+def sign_out(request: Request, response: Response, user: User = Depends(actor), session: Session = Depends(db)):
+    if not development_enabled(request):
+        return auth.sign_out(request,response,session)
     token = request.cookies.get(COOKIE, "")
     request.app.state.dashboard_sessions.pop(hashlib.sha256(token.encode()).hexdigest(), None)
     response.delete_cookie(COOKIE, path="/api/v1/dashboard")
@@ -187,10 +207,10 @@ def workspace(request: Request, response: Response, user: User = Depends(actor),
     return {"account": {"email": user.email, "role": user.role,
                 "business": merchant.name if merchant else "Acoustic Beacon Network",
                 "description": merchant.description if merchant else "Authorized merchant campaigns"},
-            "csrf_token": csrf(request.cookies.get(COOKIE, "")),
+            "csrf_token": csrf(request.cookies.get(COOKIE if development_enabled(request) else auth.COOKIE, "")),
             "offers": [offer_json(o, m) for o, m in session.execute(offers_query.order_by(Offer.updated_at.desc()))],
             "campaigns": [campaign_json(session, c) for c in campaigns], "beacons": beacons,
-            "analytics_available": merchant is not None, "development": True}
+            "analytics_available": merchant is not None, "development": bool(development_enabled(request))}
 
 
 @router.post("/offers", status_code=201)

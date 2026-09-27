@@ -43,7 +43,7 @@ def test_development_login_never_available_in_production(engine):
     settings=Settings(environment='production',database_url='postgresql://unused:unused@localhost/unused',dashboard_dev_auth=True,_env_file=None)
     with TestClient(create_app(settings,engine=engine)) as client:
         assert client.post('/api/v1/dashboard/dev-session',json={'role':'merchant'},headers={'X-Beacon-Development':'1'}).status_code == 404
-        assert client.get('/api/v1/dashboard/workspace').status_code == 503
+        assert client.get('/api/v1/dashboard/workspace').status_code == 401
 
 
 def test_offer_create_edit_activate_and_validation(dashboard):

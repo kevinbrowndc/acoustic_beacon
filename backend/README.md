@@ -1,3 +1,5 @@
+> Production access update: email/password authentication and persistent sessions are now implemented. See [PRODUCTION_SIGN_IN.md](PRODUCTION_SIGN_IN.md) for the one-time private Manager setup. Older phase notes below describe the earlier development-only state.
+
 # Acoustic Beacon backend — Phase 1
 
 Standalone campaign-resolution service. The Flutter application and acoustic decoder are unchanged and are not connected to this service yet. No production deployment, authentication system, merchant dashboard, or write API is included.

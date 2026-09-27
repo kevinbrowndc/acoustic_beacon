@@ -25,8 +25,8 @@ def test_production_dashboard_entry_and_assets():
             assert config['api_base_url'] == ''  # Browser uses its real HTTPS origin.
             assert config['development_sign_in'] is False
             assert client.post('/api/v1/dashboard/dev-session', json={'role':'merchant'}).status_code == 404
-            assert client.get('/api/v1/dashboard/workspace').status_code == 503
-            assert client.get('/api/v1/dashboard/activity').status_code == 503
+            assert client.get('/api/v1/dashboard/workspace').status_code == 401
+            assert client.get('/api/v1/dashboard/activity').status_code == 401
     finally:
         engine.dispose()
 

@@ -15,7 +15,7 @@ function notice(text) { state.notice=text; announce(text); }
 function errorBox(text) { return `<div class="alert" role="alert"><span>${e(text)}</span>${button('Try again','retry',true)}</div>`; }
 function render() {
   if (!state.workspace) {
-    root.innerHTML=`<div class="signin"><div class="signin-brand">${brand}</div><main id="main" class="signin-card"><span class="eyebrow">ACOUSTIC BEACON FOR BUSINESS</span><h1>Good things<br>start with a signal.</h1><p>Your offers. Your campaigns. One connected workspace.</p>${state.error?errorBox(state.error):''}${state.loading?'<div class="loading" role="status">Opening your workspace…</div>':state.config?.development_sign_in?`<div class="dev-label">Local development workspace</div><p class="small">Explore with persisted sample data. This is not a production sign-in.</p><button class="button wide" data-action="login" data-role="merchant" ${state.busy?'disabled':''}>Open merchant workspace ${icon('arrow')}</button><button class="button secondary wide" data-action="login" data-role="manager" ${state.busy?'disabled':''}>Explore manager workspace</button>`:`<div class="alert">Production account sign-in is not connected. No sample workspace is substituted.</div>`}</main><p class="signin-footer">Connect a signal to something worth discovering.</p></div>`;
+    root.innerHTML=`<div class="signin"><div class="signin-brand">${brand}</div><main id="main" class="signin-card"><span class="eyebrow">ACOUSTIC BEACON FOR BUSINESS</span><h1>Good things<br>start with a signal.</h1><p>Your offers. Your campaigns. One connected workspace.</p>${state.error?errorBox(state.error):''}${state.loading?'<div class="loading" role="status">Opening your workspace…</div>':state.config?.development_sign_in?`<div class="dev-label">Local development workspace</div><p class="small">Explore with persisted sample data. This is not a production sign-in.</p><button class="button wide" data-action="login" data-role="merchant" ${state.busy?'disabled':''}>Open merchant workspace ${icon('arrow')}</button><button class="button secondary wide" data-action="login" data-role="manager" ${state.busy?'disabled':''}>Explore manager workspace</button>`:`<form data-form="production-login"><label>Email<input name="email" type="email" autocomplete="username" required maxlength="320"></label><label>Password<input name="password" type="password" autocomplete="current-password" required maxlength="256"></label><p class="form-error" role="alert"></p><button class="button wide" type="submit">Sign in</button></form><p class="small">Use your Acoustic Beacon account. Contact your account administrator if you need access or a password reset.</p>`}</main><p class="signin-footer">Connect a signal to something worth discovering.</p></div>`;
     return;
   }
   const w=state.workspace, route=routeFromHash(location.hash), manager=w.account.role==='manager';
@@ -38,6 +38,12 @@ function render() {
     document.querySelectorAll('.account-details dd').forEach(el=>{if(el.textContent.includes('Development session'))el.textContent='No sign-in required - isolated demo';if(el.textContent.includes('Local development'))el.textContent='Public demonstration';});
     const imageField=document.querySelector('[name="image_url"]');if(imageField)imageField.disabled=true;
   }
+  if(!isDemo && !w.development){
+    document.querySelector('.local-badge').textContent='Production workspace';
+    document.querySelector('.sidebar-bottom>p').textContent='Your live account and campaign content.';
+    document.querySelector('.dev-chip').textContent='Live';
+    document.querySelectorAll('.account-details dd').forEach(el=>{if(el.textContent.includes('Development session'))el.textContent='Secure account session';if(el.textContent.includes('Local development'))el.textContent='Production';});
+  }
   installImageFallbacks();
 }
 function installImageFallbacks() { root.querySelectorAll('.preview-art img').forEach(img=>img.addEventListener('error',()=>{img.parentElement.innerHTML=icon('beacon',46);},{once:true})); }
@@ -54,6 +60,7 @@ async function loadWorkspace() {
   finally {state.loading=false; render();}
 }
 async function loadActivity(period) {
+  if(state.workspace?.account.role==='manager'){state.activity=null;state.today=null;state.activityLoading=false;state.activityError='Customer activity is private to each merchant account. Sign in as a merchant to view its analytics.';return;}
   const request=++state.activityRequest;state.period=period;state.activityLoading=true;state.activity=null;state.activityError='';render();
   try {
     const result=await state.api.request('/activity?period='+period);
@@ -72,11 +79,7 @@ async function initialize() {
     if(!response.ok) throw new Error('The backend configuration is unavailable. Please try again shortly.');
     state.config=await response.json();
     state.api=new Api(resolveApiBase(state.config.api_base_url,state.config.production,location.origin));
-    if (state.config.production && !state.config.development_sign_in) {
-      state.loading=false; render();
-    } else {
-      await loadWorkspace();
-    }
+    await loadWorkspace();
   } catch(error) {state.error=error.message; state.loading=false; render();}
 }
 function modal(title,subtitle,body,formType,id='') {
@@ -136,6 +139,13 @@ root.addEventListener('click',async event=>{
 root.addEventListener('submit',async event=>{
   const form=event.target.closest('form[data-form]');if(!form)return;event.preventDefault();
   const data=new FormData(form), type=form.dataset.form, id=form.dataset.id;
+  if(type==='production-login'){
+    const submit=form.querySelector('[type=submit]');submit.disabled=true;submit.textContent='Signing in…';
+    const errorBox=form.querySelector('.form-error');errorBox.textContent='';
+    try{await state.api.request('/session',{method:'POST',body:{email:data.get('email'),password:data.get('password')}});form.reset();state.error='';await loadWorkspace();}
+    catch(error){errorBox.textContent=error.message;form.querySelector('[name=password]').value='';submit.disabled=false;submit.textContent='Sign in';}
+    return;
+  }
   const errorBox=form.querySelector('.form-error');errorBox.textContent='';
   const submit=form.querySelector('[type=submit]');submit.disabled=true;submit.textContent='Saving…';
   try {

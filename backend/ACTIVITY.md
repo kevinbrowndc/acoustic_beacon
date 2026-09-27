@@ -26,7 +26,7 @@ This is the repository's existing explicit migration path. Runtime startup does 
 
 ## Honest current limitations
 
-Production identity integration remains fail-closed, unchanged: the deployed merchant endpoints return 503 until the separate identity integration exists. Authenticated local merchant sessions exercise the complete analytics endpoint.
+Production email/password sessions now protect these endpoints. Complete the private Manager setup in `PRODUCTION_SIGN_IN.md`; Merchant analytics remains scoped to the authenticated Merchant. Manager accounts cannot read individual Merchant analytics.
 
 There was no existing customer event model or collector. This change adds the storage and read/aggregation architecture, not a public unauthenticated event-write endpoint. Trusted consumer-event ingestion must later write the validated merchant association, one of the four kinds, UTC occurrence time and a globally unique event key (to prevent duplicate ingestion). No customer identity is stored. Do not count offer lookups or dashboard visits as acoustic detections, and do not invent redemptions. Until real event collection is connected, production totals are legitimately zero. D09 and Flutter remain untouched.
 
