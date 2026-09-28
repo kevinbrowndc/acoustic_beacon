@@ -6,4 +6,5 @@
     <priority>1.0</priority>
   </url>
   <url><loc>https://acousticbeacon.com/businesses</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+<url><loc>https://acousticbeacon.com/contact</loc></url>
 </urlset>
