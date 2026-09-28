@@ -14,3 +14,5 @@ test('home navigation and sitemap expose businesses with mobile controls',async(
  const html=await readFile('index.html','utf8');for(const label of ['Businesses','Demo','About','Contact'])assert.ok(html.includes('>'+label+'</a>'));
  assert.ok(html.includes('aria-controls="primary-navigation"'));assert.ok(html.includes('href="/businesses"'));assert.match(await readFile('sitemap.xml','utf8'),/https:\/\/acousticbeacon.com\/businesses/);
 });
+
+test('directory routing has no trailing-slash self redirect',async()=>{const config=await readFile('netlify.toml','utf8');assert.ok(!config.includes('status = 301'));assert.ok(config.includes('to = "/.netlify/functions/businesses"'));});
