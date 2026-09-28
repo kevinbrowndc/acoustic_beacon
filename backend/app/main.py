@@ -92,7 +92,7 @@ def create_app(settings: Settings | None = None, engine=None):
     def readiness(session: Annotated[Session, Depends(get_session)], response: Response):
         # Verifies the deployed migration, not just that PostgreSQL accepts TCP.
         revision = session.execute(text("SELECT version_num FROM alembic_version")).scalar_one_or_none()
-        if revision not in {"0001", "0002", "0003", "0004"}:
+        if revision not in {"0001", "0002", "0003", "0004", "0005"}:
             raise HTTPException(503, "Database migration pending", headers={"Cache-Control": "no-store"})
         session.execute(text("SELECT payload_id FROM beacons LIMIT 0"))
         response.headers["Cache-Control"] = "no-store"
@@ -108,6 +108,12 @@ def create_app(settings: Settings | None = None, engine=None):
     async def database_unavailable(_, __):
         return JSONResponse(status_code=503, content={"detail": "Content temporarily unavailable"},
             headers={"Cache-Control": "no-store"})
+
+    @app.get('/api/v1/businesses')
+    def businesses(response: Response, session: Annotated[Session, Depends(get_session)]):
+        from .directory import public_businesses
+        response.headers['Cache-Control']='no-store'
+        return public_businesses(session)
 
     @app.get("/api/v1/beacons/{beacon_id}/offers", response_model=BeaconOffersOut)
     def beacon_offers(

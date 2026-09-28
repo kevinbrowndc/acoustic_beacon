@@ -21,6 +21,7 @@ from .lookup import aware, lookup_offers
 from .models import Beacon, Campaign, CampaignOffer, Merchant, Offer, User, AccountCredential
 from .schemas import OfferInput
 from . import auth
+from .directory import DirectoryProfile
 
 router = APIRouter(prefix="/api/v1/dashboard", tags=["Merchant dashboard"])
 COOKIE = "ab_dashboard_session"
@@ -207,7 +208,8 @@ def workspace(request: Request, response: Response, user: User = Depends(actor),
             "served_offers": [item.model_dump(mode="json") for item in result.offers] if result else []})
     return {"account": {"email": user.email, "role": user.role,
                 "business": merchant.name if merchant else "Acoustic Beacon Network",
-                "description": merchant.description if merchant else "Authorized merchant campaigns"},
+                "description": merchant.description if merchant else "Authorized merchant campaigns",
+                "website": merchant.website if merchant else None, "directory_opt_in": merchant.directory_opt_in if merchant else False},
             "csrf_token": csrf(request.cookies.get(COOKIE if development_enabled(request) else auth.COOKIE, "")),
             "offers": [offer_json(o, m) for o, m in session.execute(offers_query.order_by(Offer.updated_at.desc()))],
             "campaigns": [campaign_json(session, c) for c in campaigns], "beacons": beacons,
@@ -311,7 +313,7 @@ def customer_activity(response: Response, period: Literal['today', '7d', '30d', 
     return summarize(session, merchant.id, period, datetime.now(timezone.utc))
 
 
-class MerchantRegistration(BaseModel):
+class MerchantRegistration(DirectoryProfile):
     model_config = ConfigDict(extra='forbid', hide_input_in_errors=True)
     business_name: str = Field(min_length=1, max_length=200)
     contact_name: str = Field(min_length=1, max_length=200)
@@ -352,10 +354,20 @@ def register_merchant(data: MerchantRegistration, request: Request, response: Re
     try:
         user=User(email=data.email,role='merchant')
         session.add(user);session.flush()
-        session.add(Merchant(owner_user_id=user.id,name=data.business_name,contact_name=data.contact_name,description='',active=True))
+        session.add(Merchant(owner_user_id=user.id,name=data.business_name,contact_name=data.contact_name,website=data.website,directory_opt_in=data.directory_opt_in,description='',active=True))
         session.add(AccountCredential(user_id=user.id,password_hash=encoded,enabled=True))
         session.flush()
         return auth.issue_session(request,response,session,user.id,now)
     except IntegrityError:
         session.rollback()
         raise HTTPException(409,'Unable to create an account with these details. Try signing in or contact support.',headers={'Cache-Control':'no-store'}) from None
+
+
+@router.put('/profile')
+def update_directory_profile(data: DirectoryProfile, response: Response, user: User = Depends(actor), session: Session = Depends(db)):
+    merchant=merchant_for(session,user)
+    merchant.website=data.website
+    merchant.directory_opt_in=data.directory_opt_in
+    session.commit()
+    response.headers['Cache-Control']='no-store'
+    return {'website':merchant.website,'directory_opt_in':merchant.directory_opt_in}

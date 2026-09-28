@@ -161,7 +161,10 @@ root.addEventListener('submit',async event=>{
   const errorBox=form.querySelector('.form-error');errorBox.textContent='';
   const submit=form.querySelector('[type=submit]');submit.disabled=true;submit.textContent='Saving…';
   try {
-    if(type==='offer') {
+    if(type==='directory-profile') {
+      await state.api.request('/profile',{method:'PUT',body:{website:data.get('website')||null,directory_opt_in:data.has('directory_opt_in')}});
+      notice('Website and directory preference saved.');
+    } else if(type==='offer') {
       const body={title:data.get('title'),description:data.get('description'),terms:data.get('terms'),image_url:data.get('image_url')||null,start_at:dateToApi(data.get('start_at')),end_at:dateToApi(data.get('end_at')),active:data.has('active'),manager_eligible:data.has('manager_eligible')};
       await state.api.request(`/offers${id?'/'+id:''}`,{method:id?'PUT':'POST',body});
       notice('Offer saved. Campaign delivery uses your latest content.');

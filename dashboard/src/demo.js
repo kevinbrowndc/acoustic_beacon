@@ -14,6 +14,7 @@ export class DemoApi {
       for(const beacon of this.w.beacons){const c=this.w.campaigns.find(c=>c.id===beacon.campaign_id);beacon.served_offers=c?.active?this.w.offers.filter(o=>o.active&&c.offer_ids.includes(o.id)).map(o=>({...o,merchant:{name:o.merchant}})):[];}
       return structuredClone(this.w);
     }
+    if(path==='/profile'&&method==='PUT'){Object.assign(this.w.account,structuredClone(body));return structuredClone(body);}
     const [kind,id]=path.slice(1).split('/');
     if(['offers','campaigns'].includes(kind)&&['POST','PUT'].includes(method)){
       const item={...structuredClone(body),id:id||'demo-'+crypto.randomUUID()};
