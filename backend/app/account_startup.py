@@ -16,6 +16,9 @@ def prepare_accounts(engine,settings):
         config.attributes['database_url']=settings.database_url.get_secret_value()
         config.attributes['connection']=connection
         command.upgrade(config,'head')
+        from .provisioning import backfill_merchants
+        with Session(bind=connection) as session:
+            backfill_merchants(session)
         email=settings.bootstrap_manager_email
         password=settings.bootstrap_manager_password
         if email is None and password is None:

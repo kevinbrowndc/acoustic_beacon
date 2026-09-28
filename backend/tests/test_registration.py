@@ -23,7 +23,8 @@ def test_signup_empty_workspace_hash_and_login(production,engine):
     assert register(production).status_code==201
     w=production.get('/api/v1/dashboard/workspace').json()
     assert w['account']['role']=='merchant' and w['account']['business']=='New business'
-    assert w['offers']==w['campaigns']==w['beacons']==[]
+    assert w['offers']==w['campaigns']==[]
+    assert len(w['beacons'])==1
     assert w['development'] is False
     with Session(engine) as s:
         u=s.scalar(select(User).where(User.email=='new@example.invalid'))

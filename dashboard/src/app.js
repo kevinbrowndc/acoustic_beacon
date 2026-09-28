@@ -28,7 +28,7 @@ function render() {
   if(route==='dashboard') content=overview(w,activityCard(state.today,state.activityError));
   else if(route==='offers') content=`<div class="page-intro"><div><span class="eyebrow">${manager?'MERCHANT-APPROVED CONTENT':'SOMETHING WORTH DISCOVERING'}</span><h1>${manager?'Network offers':'Your offers'}</h1><p>${manager?'Select authorized offers for your campaigns. Merchant content stays merchant-owned.':'Create, refine, and choose when your offers are available.'}</p></div>${manager?'':button('Create offer','new-offer')}</div><section class="panel"><div class="list-tools"><label class="search">${icon('search')}<span class="sr-only">Search offers</span><input id="offer-search" type="search" placeholder="Search offers…" value="${e(state.search)}"></label><label class="filter"><span class="sr-only">Offer status</span><select id="offer-filter">${['all','active','inactive','scheduled','expired'].map(s=>`<option value="${s}" ${state.filter===s?'selected':''}>${s==='all'?'All statuses':s[0].toUpperCase()+s.slice(1)}</option>`).join('')}</select></label><span class="result-count" id="offer-count"></span></div><div id="offer-results"></div></section>${manager?'<p class="footnote">Eligibility is checked again when a campaign is saved and when content is served. Revoked consent removes delivery access.</p>':''}`;
   else if(route==='campaigns') content=`<div class="page-intro"><div><span class="eyebrow">CURATE THE DISCOVERY</span><h1>Your campaigns</h1><p>Bring multiple ${manager?'authorized merchant ':''}offers together behind one beacon.</p></div>${button('Create campaign','new-campaign')}</div>${campaignCards(w)}`;
-  else if(route==='beacon') content=beaconPage(w);
+  else if(route==='beacon') content=beaconPage(w,isDemo);
   else if(route==='activity') content=activityView(state.activity,state.period,state.activityLoading,state.activityError);
   else if(route==='account') content=accountPage(w);
   else content=empty('This page is not here','Choose a workspace page from the navigation.','<a class="button" href="#/dashboard">Back to dashboard</a>');
@@ -161,7 +161,10 @@ root.addEventListener('submit',async event=>{
   const errorBox=form.querySelector('.form-error');errorBox.textContent='';
   const submit=form.querySelector('[type=submit]');submit.disabled=true;submit.textContent='Saving…';
   try {
-    if(type==='directory-profile') {
+    if(type==='beacon-support' && !isDemo) {
+      await state.api.request(`/support/beacons/${id}`,{method:'PUT',body:{active:data.has('active')}});
+      notice('Beacon availability updated.');
+    } else if(type==='directory-profile') {
       await state.api.request('/profile',{method:'PUT',body:{website:data.get('website')||null,directory_opt_in:data.has('directory_opt_in')}});
       notice('Website and directory preference saved.');
     } else if(type==='offer') {

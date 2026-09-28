@@ -206,7 +206,12 @@ def workspace(request: Request, response: Response, user: User = Depends(actor),
         beacons.append({"id": beacon.public_id, "beacon_id": f"0x{beacon.payload_id:06X}", "active": beacon.active,
             "campaign_id": campaign.public_id if campaign else None,
             "served_offers": [item.model_dump(mode="json") for item in result.offers] if result else []})
-    return {"account": {"email": user.email, "role": user.role,
+    support_beacons = None
+    if user.role == 'manager':
+        support_beacons = [{'id': b.public_id, 'beacon_id': f'0x{b.payload_id:06X}',
+            'business': m.name, 'active': b.active}
+            for b, m in session.execute(select(Beacon, Merchant).join(Merchant, Merchant.owner_user_id == Beacon.owner_user_id).order_by(Beacon.id))]
+    return {"support_beacons": support_beacons, "account": {"email": user.email, "role": user.role,
                 "business": merchant.name if merchant else "Acoustic Beacon Network",
                 "description": merchant.description if merchant else "Authorized merchant campaigns",
                 "website": merchant.website if merchant else None, "directory_opt_in": merchant.directory_opt_in if merchant else False},
@@ -357,6 +362,8 @@ def register_merchant(data: MerchantRegistration, request: Request, response: Re
         session.add(Merchant(owner_user_id=user.id,name=data.business_name,contact_name=data.contact_name,website=data.website,directory_opt_in=data.directory_opt_in,description='',active=True))
         session.add(AccountCredential(user_id=user.id,password_hash=encoded,enabled=True))
         session.flush()
+        from .provisioning import ensure_beacon
+        ensure_beacon(session, user.id)
         return auth.issue_session(request,response,session,user.id,now)
     except IntegrityError:
         session.rollback()
@@ -371,3 +378,31 @@ def update_directory_profile(data: DirectoryProfile, response: Response, user: U
     session.commit()
     response.headers['Cache-Control']='no-store'
     return {'website':merchant.website,'directory_opt_in':merchant.directory_opt_in}
+
+
+@router.get('/beacons/{public_id}/audio.wav')
+def beacon_audio(public_id: UUID, user: User = Depends(actor), session: Session = Depends(db)):
+    from .beacon_audio import render_wav
+    beacon = session.scalar(select(Beacon).where(Beacon.public_id == str(public_id), Beacon.owner_user_id == user.id))
+    if beacon is None:
+        raise HTTPException(404, 'Beacon unavailable')
+    return Response(render_wav(beacon.payload_id), media_type='audio/wav', headers={
+        'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff',
+        'Content-Disposition': f'inline; filename="Acoustic-Beacon-{beacon.payload_id:06X}.wav"'})
+
+
+class BeaconAvailability(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    active: bool
+
+
+@router.put('/support/beacons/{public_id}')
+def support_beacon(public_id: UUID, data: BeaconAvailability, user: User = Depends(actor), session: Session = Depends(db)):
+    if user.role != 'manager':
+        raise HTTPException(403, 'Manager access required')
+    beacon = session.scalar(select(Beacon).where(Beacon.public_id == str(public_id)))
+    if beacon is None:
+        raise HTTPException(404, 'Beacon unavailable')
+    beacon.active = data.active
+    session.commit()
+    return {'updated': True}
