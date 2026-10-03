@@ -7,19 +7,26 @@ from io import BytesIO
 import math
 import struct
 import wave
+import json
+from pathlib import Path
 from functools import lru_cache
+
+
+PROFILE = json.loads(Path(__file__).with_name('d09_profile.json').read_text())
+RATE = PROFILE['sample_rate']
+SLOT = RATE * PROFILE['symbol_ms'] // 1000
 
 
 @lru_cache(maxsize=2)
 def symbol_pcm(bit):
-    frequency = 5000 if bit else 4000
+    frequency = PROFILE['one_hz'] if bit else PROFILE['zero_hz']
     samples = []
-    for i in range(1920):
-        ramp = max(0.0, min(1.0, i / 96, (960 - i) / 96))
-        value = .6 * ramp * math.sin(2 * math.pi * frequency * i / 48000) if i < 960 else 0
+    for i in range(SLOT):
+        ramp = max(0.0, min(1.0, i / 96, (SLOT // 2 - i) / 96))
+        value = .6 * ramp * math.sin(2 * math.pi * frequency * i / RATE) if i < SLOT // 2 else 0
         scaled = value * 32767
         samples.append(math.floor(scaled + .5) if scaled >= 0 else math.ceil(scaled - .5))
-    return struct.pack('<1920h', *samples)
+    return struct.pack(f'<{SLOT}h', *samples)
 
 
 def frame_bytes(payload_id):
@@ -39,6 +46,6 @@ def render_wav(payload_id):
     quiet = bytes(9600)
     out = BytesIO()
     with wave.open(out, 'wb') as wav:
-        wav.setparams((1, 2, 48000, 0, 'NONE', 'not compressed'))
+        wav.setparams((1, 2, RATE, 0, 'NONE', 'not compressed'))
         wav.writeframes((quiet + frame) * 3 + quiet)
     return out.getvalue()

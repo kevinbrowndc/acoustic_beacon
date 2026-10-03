@@ -1,0 +1,6 @@
+{
+  "sample_rate": 48000,
+  "zero_hz": 4000,
+  "one_hz": 5000,
+  "symbol_ms": 40
+}

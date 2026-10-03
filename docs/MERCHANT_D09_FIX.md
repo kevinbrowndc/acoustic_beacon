@@ -1,0 +1,13 @@
+# Merchant audio / production consumer alignment
+
+The actual consumer is the sibling acoustic_beacon_consumer checkout (package acoustic_beacon, production entrypoint lib/consumer/app.dart). The Flutter tree at this repository root is an obsolete text-frame prototype, not the compact D09 consumer. Existing uncommitted experimental edits in that tree were preserved. Do not build it for this physical test.
+
+Reproduced before fixing: backend WAVs for ABC123 and 96939B yield zero decoded IDs with the current consumer controller's explicit 20000/21000 configuration; both yield the exact ID with 4000/5000 configuration. The prior tests explicitly selected audible settings or synthesized a matching signal from the controller config, so they did not test the independently generated merchant audio against the out-of-box configuration.
+
+Fix: backend/app/d09_profile.json is the canonical production radio profile. tool/sync_d09_profile.py generates consumer lib/protocol/d09_profile.dart. BeaconConfig defaults use that profile; BeaconController uses those defaults without a separate override. No detector/grid/microphone algorithm, threshold (.008), confidence (.75), or CRC gate changed. Existing diagnostic display changes in the consumer were retained, not overwritten.
+
+Wire format remains CD A8 | three network-order ID bytes | CRC-8/0x07(init0, non-reflected, xor0), MSB-first, 48 kHz mono signed PCM16 little-endian, 40ms slot, 20ms tone/20ms quiet, 96-sample ramp, .6 amplitude, three repeats with 100ms before each and after last. No header. Frames: ABC123 = CD A8 AB C1 23 B5; see tests for 96939B. Backend waveform output is unchanged byte-for-byte.
+
+Cross-project regression: tool/test_merchant_wav.py generates WAV files with the backend implementation and runs consumer tests with production defaults and irregular 997-sample chunks plus a 137-sample start offset. Includes exact ID and CRC checks for both IDs. Consumer changes are retained in its local Git commit and a portable patch under docs/consumer-patches because that checkout has no GitHub remote; the obsolete root Flutter tree is not replaced.
+
+Physical acceptance still requires installing consumer 1.0.5+16 (production HTTPS API configured), pressing Play your beacon on the merchant Beacon page while the phone is listening, and checking the decoded ID/promotion. Test ABC123 control first, then 96939B. Keep the phone in the foreground and use the same speaker/volume as the working control. No frequency configuration is required. Ensure the offer/campaign are active and in date; the observed Test offer expires 2026-10-04T16:38:00Z. No production data is changed by this fix.

@@ -1,0 +1,355 @@
+From 055f7a109eb6489b4d14c0af3016d82df8f0f6fb Mon Sep 17 00:00:00 2001
+From: Kevin Brown <kevin@hrinnovate.org>
+Date: Sat, 3 Oct 2026 12:47:13 -0500
+Subject: [PATCH] Align consumer defaults with merchant D09 audio and replay
+ backend WAVs
+
+---
+ lib/application/beacon_controller.dart |   2 +-
+ lib/protocol/beacon_protocol.dart      |   9 +++----
+ lib/protocol/d09_profile.dart          |   7 ++++++
+ pubspec.yaml                           |   2 +-
+ test/fixtures/merchant-96939B.wav      | Bin 0 -> 591404 bytes
+ test/fixtures/merchant-ABC123.wav      | Bin 0 -> 591404 bytes
+ test/merchant_wav_test.dart            |  32 +++++++++++++++++++++++++
+ 7 files changed, 46 insertions(+), 6 deletions(-)
+ create mode 100644 lib/protocol/d09_profile.dart
+ create mode 100644 test/fixtures/merchant-96939B.wav
+ create mode 100644 test/fixtures/merchant-ABC123.wav
+ create mode 100644 test/merchant_wav_test.dart
+
+diff --git a/lib/application/beacon_controller.dart b/lib/application/beacon_controller.dart
+index 64a7f02..9e7c6ed 100644
+--- a/lib/application/beacon_controller.dart
++++ b/lib/application/beacon_controller.dart
+@@ -18,7 +18,7 @@ enum ListeningState {
+ class BeaconController extends ChangeNotifier {
+   final PcmCapture capture;
+   final ContentRepository repository;
+-  BeaconConfig config = const BeaconConfig(zeroHz: 4000, oneHz: 5000);
++  BeaconConfig config = const BeaconConfig();
+   late BeaconDetector detector;
+   ListeningState state = ListeningState.idle;
+   BeaconContent? content;
+diff --git a/lib/protocol/beacon_protocol.dart b/lib/protocol/beacon_protocol.dart
+index e1bf085..28385d4 100644
+--- a/lib/protocol/beacon_protocol.dart
++++ b/lib/protocol/beacon_protocol.dart
+@@ -1,4 +1,5 @@
+ import 'dart:math';
++import 'd09_profile.dart';
+ import 'dart:typed_data';
+ 
+ class BeaconConfig {
+@@ -6,12 +7,12 @@ class BeaconConfig {
+   final double zeroHz, oneHz, threshold, confidence;
+   final int symbolMs, repeats;
+   const BeaconConfig({
+-    this.sampleRate = 48000,
+-    this.zeroHz = 20000,
+-    this.oneHz = 21000,
++    this.sampleRate = D09Profile.sampleRate,
++    this.zeroHz = D09Profile.zeroHz,
++    this.oneHz = D09Profile.oneHz,
+     this.threshold = 0.008,
+     this.confidence = 0.75,
+-    this.symbolMs = 40,
++    this.symbolMs = D09Profile.symbolMs,
+     this.repeats = 1,
+   });
+   void validate() {
+diff --git a/lib/protocol/d09_profile.dart b/lib/protocol/d09_profile.dart
+new file mode 100644
+index 0000000..2955e76
+--- /dev/null
++++ b/lib/protocol/d09_profile.dart
+@@ -0,0 +1,7 @@
++// Generated from backend/app/d09_profile.json; run tool/sync_d09_profile.py.
++abstract final class D09Profile {
++  static const int sampleRate = 48000;
++  static const double zeroHz = 4000;
++  static const double oneHz = 5000;
++  static const int symbolMs = 40;
++}
+diff --git a/pubspec.yaml b/pubspec.yaml
+index faf2684..5c66ff3 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 1.0.4+15
++version: 1.0.5+16
+ 
+ environment:
+   sdk: ^3.8.0
+diff --git a/test/fixtures/merchant-96939B.wav b/test/fixtures/merchant-96939B.wav
+new file mode 100644
+index 0000000000000000000000000000000000000000..6207aa17ca1738eb51e88663f7eb3fc52525cf38
+GIT binary patch
+literal 591404
+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
+W2oNAZfB*pk1PBlyK!Cvi1pW(6>P=1n
+
+literal 0
+HcmV?d00001
+
+diff --git a/test/fixtures/merchant-ABC123.wav b/test/fixtures/merchant-ABC123.wav
+new file mode 100644
+index 0000000000000000000000000000000000000000..58d55101c81cd8b9fc4f6acce04ed2d44dde2659
+GIT binary patch
+literal 591404
+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
+V2oNAZfB*pk1PBlyK;VA@{{;naO-=v+
+
+literal 0
+HcmV?d00001
+
+diff --git a/test/merchant_wav_test.dart b/test/merchant_wav_test.dart
+new file mode 100644
+index 0000000..3bc7122
+--- /dev/null
++++ b/test/merchant_wav_test.dart
+@@ -0,0 +1,32 @@
++import 'dart:math';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:acoustic_beacon/application/beacon_controller.dart';
++import 'package:acoustic_beacon/data/content.dart';
++import 'package:acoustic_beacon/dsp/detector.dart';
++import 'package:acoustic_beacon/protocol/beacon_protocol.dart';
++import 'controller_test.dart' show TestCapture;
++import 'compact_test.dart' show readPcm, pcmSamples;
++
++void main() {
++ for (final id in ['ABC123', '96939B']) {
++  test('backend WAV $id decodes using out-of-box production configuration', () {
++   final controller=BeaconController(TestCapture(),LocalContentRepository());
++   final samples=pcmSamples(readPcm('test/fixtures/merchant-$id.wav'));
++   final ids=<String>[];
++   final detector=BeaconDetector(controller.config,(id,_)=>ids.add(id));
++   detector.add(List.filled(137,0.0));
++   for(var i=0;i<samples.length;i+=997){detector.add(samples.sublist(i,min(i+997,samples.length)));}
++   expect(ids,isNotEmpty);
++   expect(ids.toSet(),{'0x$id'});
++   expect(detector.diagnostics.checksum,'PASS');
++   controller.dispose();
++  });
++  test('backend WAV $id control with audible D09 configuration', () {
++   final samples=pcmSamples(readPcm('test/fixtures/merchant-$id.wav'));
++   final ids=<String>[];
++   final detector=BeaconDetector(const BeaconConfig(zeroHz:4000,oneHz:5000),(id,_)=>ids.add(id));
++   detector.add(samples);
++   expect(ids.toSet(),{'0x$id'});
++  });
++ }
++}
+-- 
+2.49.0.windows.1
+
