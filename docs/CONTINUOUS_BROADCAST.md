@@ -1,0 +1,11 @@
+# Continuous merchant broadcast
+
+Inspected current origin/master and live /merchant/views.js and app.js. There was no continuous stream, Web Audio oscillator, timer, or native loop setting: only a finite authenticated WAV in an HTML audio control. Its three frames plus padding total 6.16 seconds, then playback ends. An active campaign or open page does not transmit. Thus there was no alternate continuous frame/CRC implementation to repair. No claim is made about a separate external player not present in the deployed application.
+
+The explicit Start continuous broadcast button now loops that same authenticated WAV using the same native HTML audio element as the physically verified one-shot. Stop clears loop and pauses. No alternate audio bytes, frequencies, oscillator, transcoder, playbackRate, or gain are introduced. Existing 100 ms inter-frame padding remains, with 200 ms padding across end/start file boundaries (plus the final symbol's quiet half). No WAV or backend changes.
+
+The active audio element survives normal workspace rerenders, including assignment saves, rather than being destroyed by innerHTML replacement. Navigation away and sign-out stop it. Errors and rejected play promises report failure. Keep the browser page open and device awake; operating-system/browser suspension is not bypassed. A repeated same-ID detection may still be deduplicated by the unchanged consumer UX.
+
+Tests: backend suite; dashboard state/control tests; native Chromium actual-loop, same-element preservation after save, stop, navigation, session and 390/320 width checks in dashboard/tests/continuous_browser.py. Consumer tests concatenate four actual production backend WAVs for ABC123 and 96939B, verify at least ten correctly decoded frames, zero CRC failures, and acquisition after starting 43,217 samples into playback. One-shot regressions remain. The consumer change is tests only and is exported in consumer-patches/0003-continuous-wav-tests.patch.
+
+No new APK. Use physically verified 1.0.6+17. Reload the deployed merchant page, press Start continuous broadcast, then start phone listening after the broadcast has already been running. Verify the merchant's assigned ID and active promotion. Physical continuous-mode acceptance remains a phone test.

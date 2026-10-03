@@ -1,0 +1,46 @@
+From 71bde329bd9ffc62a6cabda3c4777187679fa336 Mon Sep 17 00:00:00 2001
+From: Kevin Brown <kevin@hrinnovate.org>
+Date: Sat, 3 Oct 2026 18:16:18 -0500
+Subject: [PATCH] Test continuous production WAV repetition and late
+ acquisition
+
+---
+ test/merchant_wav_test.dart | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/test/merchant_wav_test.dart b/test/merchant_wav_test.dart
+index 4cff176..70274d3 100644
+--- a/test/merchant_wav_test.dart
++++ b/test/merchant_wav_test.dart
+@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
+ import 'package:acoustic_beacon/application/beacon_controller.dart';
+ import 'package:acoustic_beacon/data/content.dart';
+ import 'package:acoustic_beacon/dsp/detector.dart';
++import 'package:acoustic_beacon/protocol/beacon_protocol.dart';
+ import 'controller_test.dart' show TestCapture;
+ import 'compact_test.dart' show readPcm, pcmSamples, replay;
+ 
+@@ -22,6 +23,20 @@ void main() {
+    expect(detector.diagnostics.checksum,'PASS');
+    controller.dispose();
+   });
++  test('continuous backend WAV $id reacquires across file loops and late listening', () {
++   final samples=pcmSamples(readPcm('test/fixtures/merchant-$id.wav'));
++   for (final lateStart in [0, 43217]) {
++    final ids=<String>[];
++    final detector=BeaconDetector(const BeaconConfig(),(value,_)=>ids.add(value));
++    final continuous=[...samples,...samples,...samples,...samples];
++    for(var i=lateStart;i<continuous.length;i+=997){
++     detector.add(continuous.sublist(i,min(i+997,continuous.length)));
++    }
++    expect(ids.length,greaterThanOrEqualTo(10));
++    expect(ids.toSet(),{'0x$id'});
++    expect(detector.diagnostics.crcFailures,0);
++   }
++  });
+   test('production WAV $id is not decoded by diagnostic 4/5 kHz profile', () {
+    final samples=pcmSamples(readPcm('test/fixtures/merchant-$id.wav'));
+    final result=replay(samples);
+-- 
+2.49.0.windows.1
+

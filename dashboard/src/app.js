@@ -1,3 +1,4 @@
+import {restoreBroadcast} from './broadcast.js';
 import {signupForm, registrationPayload, legalLinks} from './account.js';
 const isSignup=/^\/merchant\/signup\/?$/.test(location.pathname);
 import {activityCard, activityView} from './activity.js';
@@ -16,6 +17,8 @@ function announce(text) { document.querySelector('#announcer').textContent=text;
 function notice(text) { state.notice=text; announce(text); }
 function errorBox(text) { return `<div class="alert" role="alert"><span>${e(text)}</span>${button('Try again','retry',true)}</div>`; }
 function render() {
+  const previousAudio=[...root.querySelectorAll('audio[data-beacon-audio]')];
+  if(!state.workspace || routeFromHash(location.hash)!=='beacon') for(const audio of previousAudio){audio.loop=false;audio.pause();}
   if(!state.workspace && isSignup){
     root.innerHTML=`<div class="signin"><div class="signin-brand">${brand}</div><main id="main" class="signin-card">${state.error?errorBox(state.error):''}${signupForm(state.loading)}</main></div>`;return;
   }
@@ -49,6 +52,7 @@ function render() {
     document.querySelector('.dev-chip').textContent='Live';
     document.querySelectorAll('.account-details dd').forEach(el=>{if(el.textContent.includes('Development session'))el.textContent='Secure account session';if(el.textContent.includes('Local development'))el.textContent='Production';});
   }
+  restoreBroadcast(root,previousAudio);
   installImageFallbacks();
 }
 function installImageFallbacks() { root.querySelectorAll('.preview-art img').forEach(img=>img.addEventListener('error',()=>{img.parentElement.innerHTML=icon('beacon',46);},{once:true})); }
