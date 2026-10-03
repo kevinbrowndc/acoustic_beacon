@@ -113,9 +113,23 @@ def test_startup_backfill_persists(engine,encoded):
         assert len(list(s.scalars(select(Beacon).where(Beacon.owner_user_id==owner))))==1
 
 
-def test_audio_matches_unchanged_dart_generator():
+def test_audio_matches_production_ultrasonic_vectors():
     import hashlib, json
     from pathlib import Path
     vectors=json.loads((Path(__file__).parent/'fixtures/d09-wav-sha256.json').read_text())
     for beacon_id, expected in vectors.items():
         assert hashlib.sha256(render_wav(int(beacon_id,16))).hexdigest()==expected
+
+
+def test_production_wav_frequency_profile():
+    import math, struct
+    from app.beacon_audio import PROFILE
+    assert PROFILE == {'sample_rate':48000,'zero_hz':20000,'one_hz':21000,'symbol_ms':40}
+    pcm=render_wav(0x96939B)[44:]
+    # First preamble bit is 1; third is 0. Sample only each steady tone plateau.
+    for bit_index, expected in [(0,21000),(2,20000)]:
+        start=4800+bit_index*1920+120
+        samples=struct.unpack('<720h',pcm[start*2:(start+720)*2])
+        def energy(hz):
+            return abs(sum(value*complex(math.cos(2*math.pi*hz*i/48000),math.sin(2*math.pi*hz*i/48000)) for i,value in enumerate(samples)))
+        assert max([4000,5000,20000,21000],key=energy)==expected

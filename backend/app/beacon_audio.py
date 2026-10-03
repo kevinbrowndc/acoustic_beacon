@@ -1,4 +1,4 @@
-"""D09 audible WAV delivery, matching consumer lib/protocol/beacon_protocol.dart.
+"""D09 production ultrasonic WAV delivery, matching consumer lib/protocol/beacon_protocol.dart.
 
 48 kHz mono PCM16; 40 ms slots (20 ms tone + 20 ms quiet), 96-sample
 ramps, amplitude .6, three frames, 100 ms padding before each and after all.
